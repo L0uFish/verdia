@@ -17,6 +17,7 @@ const productModalPrevious = document.querySelector("#productModalPrev");
 const productModalNext = document.querySelector("#productModalNext");
 
 let cardObserver = null;
+let currentProducts = [];
 
 const modalState = {
   product: null,
@@ -138,7 +139,8 @@ function openProductModal(product) {
     !productModalTitle ||
     !productModalPrice ||
     !productModalDescription ||
-    !productModalFeatured
+    !productModalFeatured ||
+    !product
   ) {
     return;
   }
@@ -183,10 +185,8 @@ function createCard(product) {
   const price = createElement("div", "price", formatPrice(product));
 
   detailsButton.type = "button";
+  detailsButton.dataset.productId = product.id;
   detailsButton.setAttribute("aria-label", `Lees meer over ${product.name}`);
-  detailsButton.addEventListener("click", () => {
-    openProductModal(product);
-  });
 
   if (product.featured) {
     imageBox.appendChild(createElement("span", "featuredBadge", "Uitgelicht"));
@@ -322,6 +322,8 @@ function renderProducts(products) {
     return;
   }
 
+  currentProducts = products.slice();
+
   if (cardObserver) {
     cardObserver.disconnect();
   }
@@ -396,6 +398,22 @@ if (productModalClose && productModal) {
     if (event.target === productModal) {
       closeProductModal();
     }
+  });
+}
+
+if (productGrid) {
+  productGrid.addEventListener("click", (event) => {
+    const button = event.target.closest(".cardMore[data-product-id]");
+
+    if (!button) {
+      return;
+    }
+
+    event.preventDefault();
+    event.stopPropagation();
+
+    const selectedProduct = currentProducts.find((product) => product.id === button.dataset.productId);
+    openProductModal(selectedProduct || null);
   });
 }
 
