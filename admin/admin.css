@@ -544,14 +544,14 @@ p{
   margin:22px 0;
 }
 
-.cropModeSwitch{
+.cropToolbar{
   display:flex;
   flex-wrap:wrap;
   gap:10px;
   margin-top:20px;
 }
 
-.cropModeButton{
+.cropToolButton{
   min-height:44px;
   padding:0 16px;
   border-radius:999px;
@@ -561,12 +561,12 @@ p{
   transition:transform .2s ease,background .2s ease,border-color .2s ease,color .2s ease;
 }
 
-.cropModeButton:hover:not(:disabled){
+.cropToolButton:hover:not(:disabled){
   transform:translateY(-1px);
   background:rgba(244,223,155,.09);
 }
 
-.cropModeButton.is-active{
+.cropToolButton.is-active{
   border-color:rgba(244,223,155,.5);
   background:rgba(244,223,155,.14);
   color:var(--cream);
@@ -579,7 +579,7 @@ p{
   margin:0 auto;
   overflow:hidden;
   border-radius:28px;
-  background:var(--panel-strong);
+  background:#000;
   touch-action:none;
   user-select:none;
   cursor:grab;
@@ -591,6 +591,8 @@ p{
   left:0;
   max-width:none;
   pointer-events:none;
+  transform-origin:center center;
+  will-change:transform,left,top,width,height;
 }
 
 .cropFrame{
@@ -598,17 +600,6 @@ p{
   inset:0;
   pointer-events:none;
   border:2px solid rgba(244,223,155,.65);
-  box-shadow:inset 0 0 0 999px rgba(0,0,0,.34);
-}
-
-.cropViewport.is-fit{
-  background:#000;
-  cursor:default;
-}
-
-.cropViewport.is-fit .cropFrame{
-  box-shadow:none;
-  border-color:rgba(244,223,155,.36);
 }
 
 .cropViewport.is-dragging{
@@ -667,7 +658,7 @@ body.crop-open{
     grid-template-columns:1fr;
   }
 
-  .cropModeSwitch{
+  .cropToolbar{
     display:grid;
     grid-template-columns:1fr;
   }

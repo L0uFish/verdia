@@ -40,8 +40,9 @@ const cropZoom = document.querySelector("#cropZoom");
 const cropFileName = document.querySelector("#cropFileName");
 const cropCancelButton = document.querySelector("#cropCancelButton");
 const cropConfirmButton = document.querySelector("#cropConfirmButton");
-const cropModeCropButton = document.querySelector("#cropModeCropButton");
-const cropModeFitButton = document.querySelector("#cropModeFitButton");
+const cropTitle = document.querySelector("#cropTitle");
+const cropRotateButton = document.querySelector("#cropRotateButton");
+const cropMirrorButton = document.querySelector("#cropMirrorButton");
 
 const state = {
   products: [],
@@ -54,9 +55,10 @@ const state = {
 const cropState = {
   resolver: null,
   objectUrl: "",
-  mode: "crop",
   zoom: 1,
   baseScale: 1,
+  rotation: 0,
+  mirrored: false,
   imageX: 0,
   imageY: 0,
   renderWidth: 0,
@@ -585,85 +587,95 @@ function updateCropImageMetrics() {
   }
 
   const frameSize = cropViewport.clientWidth;
+  const previousCenterX = cropState.imageX + cropState.renderWidth / 2;
+  const previousCenterY = cropState.imageY + cropState.renderHeight / 2;
+  const hasPreviousLayout = cropState.renderWidth > 0 && cropState.renderHeight > 0;
 
-  if (cropState.mode === "fit") {
-    const scale = Math.min(
-      frameSize / cropImage.naturalWidth,
-      frameSize / cropImage.naturalHeight,
-    );
+  cropState.baseScale = getFitScale(frameSize);
+  cropState.renderWidth = cropImage.naturalWidth * cropState.baseScale * cropState.zoom;
+  cropState.renderHeight = cropImage.naturalHeight * cropState.baseScale * cropState.zoom;
 
-    cropState.renderWidth = cropImage.naturalWidth * scale;
-    cropState.renderHeight = cropImage.naturalHeight * scale;
+  if (hasPreviousLayout) {
+    cropState.imageX = previousCenterX - cropState.renderWidth / 2;
+    cropState.imageY = previousCenterY - cropState.renderHeight / 2;
+  } else {
     cropState.imageX = (frameSize - cropState.renderWidth) / 2;
     cropState.imageY = (frameSize - cropState.renderHeight) / 2;
-  } else {
-    const scale = cropState.baseScale * cropState.zoom;
-
-    cropState.renderWidth = cropImage.naturalWidth * scale;
-    cropState.renderHeight = cropImage.naturalHeight * scale;
-
-    const minX = Math.min(0, frameSize - cropState.renderWidth);
-    const minY = Math.min(0, frameSize - cropState.renderHeight);
-
-    cropState.imageX = clamp(cropState.imageX, minX, 0);
-    cropState.imageY = clamp(cropState.imageY, minY, 0);
   }
 
+  clampCropImagePosition(frameSize);
+  applyCropImageStyles();
+}
+
+function getNormalizedRotation() {
+  return ((cropState.rotation % 360) + 360) % 360;
+}
+
+function getFitScale(frameSize) {
+  const normalizedRotation = getNormalizedRotation();
+  const isQuarterTurn = normalizedRotation === 90 || normalizedRotation === 270;
+  const rotatedWidth = isQuarterTurn ? cropImage.naturalHeight : cropImage.naturalWidth;
+  const rotatedHeight = isQuarterTurn ? cropImage.naturalWidth : cropImage.naturalHeight;
+
+  return Math.min(frameSize / rotatedWidth, frameSize / rotatedHeight);
+}
+
+function getCropBounds() {
+  const normalizedRotation = getNormalizedRotation();
+  const isQuarterTurn = normalizedRotation === 90 || normalizedRotation === 270;
+
+  return {
+    width: isQuarterTurn ? cropState.renderHeight : cropState.renderWidth,
+    height: isQuarterTurn ? cropState.renderWidth : cropState.renderHeight,
+  };
+}
+
+function clampCropImagePosition(frameSize) {
+  const bounds = getCropBounds();
+  let centerX = cropState.imageX + cropState.renderWidth / 2;
+  let centerY = cropState.imageY + cropState.renderHeight / 2;
+
+  if (bounds.width <= frameSize) {
+    centerX = frameSize / 2;
+  } else {
+    centerX = clamp(centerX, frameSize - bounds.width / 2, bounds.width / 2);
+  }
+
+  if (bounds.height <= frameSize) {
+    centerY = frameSize / 2;
+  } else {
+    centerY = clamp(centerY, frameSize - bounds.height / 2, bounds.height / 2);
+  }
+
+  cropState.imageX = centerX - cropState.renderWidth / 2;
+  cropState.imageY = centerY - cropState.renderHeight / 2;
+}
+
+function applyCropImageStyles() {
   cropImage.style.width = `${cropState.renderWidth}px`;
   cropImage.style.height = `${cropState.renderHeight}px`;
   cropImage.style.left = `${cropState.imageX}px`;
   cropImage.style.top = `${cropState.imageY}px`;
+  cropImage.style.transform = `scaleX(${cropState.mirrored ? -1 : 1}) rotate(${cropState.rotation}deg)`;
 }
 
-function syncCropModeUi() {
-  const isFitMode = cropState.mode === "fit";
-
-  cropViewport.classList.toggle("is-fit", isFitMode);
-  cropZoom.disabled = isFitMode;
-  cropModeCropButton.classList.toggle("is-active", !isFitMode);
-  cropModeFitButton.classList.toggle("is-active", isFitMode);
-  cropModeCropButton.setAttribute("aria-pressed", String(!isFitMode));
-  cropModeFitButton.setAttribute("aria-pressed", String(isFitMode));
-  document.querySelector("#cropTitle").textContent = isFitMode
-    ? "Volledig beeld passen"
-    : "Vierkante uitsnede";
-  cropConfirmButton.textContent = isFitMode ? "Gebruik passend beeld" : "Gebruik uitsnede";
-}
-
-function resetCropPlacement() {
-  const frameSize = cropViewport.clientWidth;
-
-  cropZoom.value = "1";
-  cropState.zoom = 1;
-  cropState.baseScale = Math.max(
-    frameSize / cropImage.naturalWidth,
-    frameSize / cropImage.naturalHeight,
-  );
-  cropState.imageX = (frameSize - cropImage.naturalWidth * cropState.baseScale) / 2;
-  cropState.imageY = (frameSize - cropImage.naturalHeight * cropState.baseScale) / 2;
-
-  syncCropModeUi();
-  updateCropImageMetrics();
+function syncCropUi() {
+  cropZoom.disabled = false;
+  cropConfirmButton.textContent = "Gebruik beeld";
+  cropTitle.textContent = "Volledig beeld passen";
+  cropMirrorButton.classList.toggle("is-active", cropState.mirrored);
+  cropMirrorButton.setAttribute("aria-pressed", String(cropState.mirrored));
 }
 
 function initializeCropper() {
-  resetCropPlacement();
-}
-
-function setCropMode(mode) {
-  if (mode !== "crop" && mode !== "fit") {
-    return;
-  }
-
-  cropState.isDragging = false;
-  cropViewport.classList.remove("is-dragging");
-  cropState.mode = mode;
-
-  if (cropImage.naturalWidth && cropImage.naturalHeight) {
-    resetCropPlacement();
-  } else {
-    syncCropModeUi();
-  }
+  cropState.zoom = 1;
+  cropState.rotation = 0;
+  cropState.mirrored = false;
+  cropState.renderWidth = 0;
+  cropState.renderHeight = 0;
+  cropZoom.value = "1";
+  syncCropUi();
+  updateCropImageMetrics();
 }
 
 function closeCropper() {
@@ -706,39 +718,27 @@ async function confirmCropper() {
 
     canvas.width = 1000;
     canvas.height = 1000;
+    const frameSize = cropViewport.clientWidth;
+    const viewportToCanvasScale = canvas.width / frameSize;
+    const centerX = (cropState.imageX + cropState.renderWidth / 2) * viewportToCanvasScale;
+    const centerY = (cropState.imageY + cropState.renderHeight / 2) * viewportToCanvasScale;
+    const drawWidth = cropState.renderWidth * viewportToCanvasScale;
+    const drawHeight = cropState.renderHeight * viewportToCanvasScale;
 
-    if (cropState.mode === "fit") {
-      const scale = Math.min(
-        canvas.width / cropImage.naturalWidth,
-        canvas.height / cropImage.naturalHeight,
-      );
-      const drawWidth = cropImage.naturalWidth * scale;
-      const drawHeight = cropImage.naturalHeight * scale;
-      const drawX = (canvas.width - drawWidth) / 2;
-      const drawY = (canvas.height - drawHeight) / 2;
-
-      context.fillStyle = "#000";
-      context.fillRect(0, 0, canvas.width, canvas.height);
-      context.drawImage(cropImage, drawX, drawY, drawWidth, drawHeight);
-    } else {
-      const frameSize = cropViewport.clientWidth;
-      const scale = cropState.baseScale * cropState.zoom;
-      const sourceX = -cropState.imageX / scale;
-      const sourceY = -cropState.imageY / scale;
-      const sourceSize = frameSize / scale;
-
-      context.drawImage(
-        cropImage,
-        sourceX,
-        sourceY,
-        sourceSize,
-        sourceSize,
-        0,
-        0,
-        canvas.width,
-        canvas.height,
-      );
-    }
+    context.fillStyle = "#000";
+    context.fillRect(0, 0, canvas.width, canvas.height);
+    context.imageSmoothingEnabled = true;
+    context.imageSmoothingQuality = "high";
+    context.translate(centerX, centerY);
+    context.scale(cropState.mirrored ? -1 : 1, 1);
+    context.rotate((cropState.rotation * Math.PI) / 180);
+    context.drawImage(
+      cropImage,
+      -drawWidth / 2,
+      -drawHeight / 2,
+      drawWidth,
+      drawHeight,
+    );
 
     const blob = await new Promise((resolve) => {
       canvas.toBlob(resolve, "image/webp", 0.9);
@@ -763,12 +763,16 @@ function openCropper(file) {
   return new Promise((resolve, reject) => {
     cropState.resolver = resolve;
     cropState.objectUrl = URL.createObjectURL(file);
-    cropState.mode = "crop";
+    cropState.zoom = 1;
+    cropState.rotation = 0;
+    cropState.mirrored = false;
+    cropState.renderWidth = 0;
+    cropState.renderHeight = 0;
     cropFileName.textContent = file.name;
     cropConfirmButton.disabled = false;
     cropCancelButton.disabled = false;
     cropViewport.classList.remove("is-dragging");
-    syncCropModeUi();
+    syncCropUi();
     cropModal.hidden = false;
     document.body.classList.add("crop-open");
     cropImage.onload = () => {
@@ -922,11 +926,14 @@ productForm.addEventListener("submit", handleSave);
 imageInput.addEventListener("change", handleImageSelection);
 cropCancelButton.addEventListener("click", cancelCropper);
 cropConfirmButton.addEventListener("click", confirmCropper);
-cropModeCropButton.addEventListener("click", () => {
-  setCropMode("crop");
+cropRotateButton.addEventListener("click", () => {
+  cropState.rotation = (cropState.rotation + 90) % 360;
+  updateCropImageMetrics();
 });
-cropModeFitButton.addEventListener("click", () => {
-  setCropMode("fit");
+cropMirrorButton.addEventListener("click", () => {
+  cropState.mirrored = !cropState.mirrored;
+  syncCropUi();
+  applyCropImageStyles();
 });
 
 cropModal.addEventListener("click", (event) => {
@@ -942,26 +949,12 @@ window.addEventListener("keydown", (event) => {
 });
 
 cropZoom.addEventListener("input", () => {
-  if (cropState.mode !== "crop") {
-    return;
-  }
-
-  const frameSize = cropViewport.clientWidth;
-  const previousScale = cropState.baseScale * cropState.zoom;
-  const previousCenterX = (frameSize / 2 - cropState.imageX) / previousScale;
-  const previousCenterY = (frameSize / 2 - cropState.imageY) / previousScale;
-
   cropState.zoom = Number(cropZoom.value);
-
-  const nextScale = cropState.baseScale * cropState.zoom;
-  cropState.imageX = frameSize / 2 - previousCenterX * nextScale;
-  cropState.imageY = frameSize / 2 - previousCenterY * nextScale;
-
   updateCropImageMetrics();
 });
 
 cropViewport.addEventListener("pointerdown", (event) => {
-  if (cropModal.hidden || cropState.mode !== "crop") {
+  if (cropModal.hidden) {
     return;
   }
 
@@ -975,13 +968,14 @@ cropViewport.addEventListener("pointerdown", (event) => {
 });
 
 cropViewport.addEventListener("pointermove", (event) => {
-  if (!cropState.isDragging || cropState.mode !== "crop") {
+  if (!cropState.isDragging) {
     return;
   }
 
   cropState.imageX = cropState.startImageX + (event.clientX - cropState.dragStartX);
   cropState.imageY = cropState.startImageY + (event.clientY - cropState.dragStartY);
-  updateCropImageMetrics();
+  clampCropImagePosition(cropViewport.clientWidth);
+  applyCropImageStyles();
 });
 
 function stopCropDrag(event) {
