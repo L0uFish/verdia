@@ -245,6 +245,12 @@ p{
   padding:0;
   overflow:hidden;
   height:620px;
+  cursor:pointer;
+}
+
+.card:focus-visible{
+  outline:none;
+  box-shadow:0 0 0 2px rgba(244,223,155,.32),0 24px 70px rgba(0,0,0,.28);
 }
 
 .cardImage{
@@ -861,6 +867,14 @@ footer{
 .modal[hidden],
 #productModal[hidden] {
   display: none !important;
+}
+
+.productModalImage[hidden],
+.productModalPlaceholder[hidden],
+.productModalArrow[hidden],
+.productModalDots[hidden],
+.modalFeaturedBadge[hidden]{
+  display:none !important;
 }
 
 .productModalDialog{

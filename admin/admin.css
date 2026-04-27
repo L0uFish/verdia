@@ -544,6 +544,34 @@ p{
   margin:22px 0;
 }
 
+.cropModeSwitch{
+  display:flex;
+  flex-wrap:wrap;
+  gap:10px;
+  margin-top:20px;
+}
+
+.cropModeButton{
+  min-height:44px;
+  padding:0 16px;
+  border-radius:999px;
+  border:1px solid rgba(214,177,93,.24);
+  background:rgba(255,255,255,.04);
+  color:var(--gold2);
+  transition:transform .2s ease,background .2s ease,border-color .2s ease,color .2s ease;
+}
+
+.cropModeButton:hover:not(:disabled){
+  transform:translateY(-1px);
+  background:rgba(244,223,155,.09);
+}
+
+.cropModeButton.is-active{
+  border-color:rgba(244,223,155,.5);
+  background:rgba(244,223,155,.14);
+  color:var(--cream);
+}
+
 .cropViewport{
   position:relative;
   width:min(100%,520px);
@@ -554,6 +582,7 @@ p{
   background:var(--panel-strong);
   touch-action:none;
   user-select:none;
+  cursor:grab;
 }
 
 .cropViewport img{
@@ -572,12 +601,31 @@ p{
   box-shadow:inset 0 0 0 999px rgba(0,0,0,.34);
 }
 
+.cropViewport.is-fit{
+  background:#000;
+  cursor:default;
+}
+
+.cropViewport.is-fit .cropFrame{
+  box-shadow:none;
+  border-color:rgba(244,223,155,.36);
+}
+
+.cropViewport.is-dragging{
+  cursor:grabbing;
+}
+
 .cropField{
   margin-bottom:22px;
 }
 
 .cropField input{
   padding:0;
+}
+
+.cropField input:disabled{
+  opacity:.4;
+  cursor:not-allowed;
 }
 
 .cropActions{
@@ -616,6 +664,11 @@ body.crop-open{
 
   .formGrid,
   .imagePreviewGrid{
+    grid-template-columns:1fr;
+  }
+
+  .cropModeSwitch{
+    display:grid;
     grid-template-columns:1fr;
   }
 }

@@ -18,6 +18,7 @@ const productModalNext = document.querySelector("#productModalNext");
 
 let cardObserver = null;
 let currentProducts = [];
+const CARD_SLIDE_INTERVAL = 1800;
 
 const modalState = {
   product: null,
@@ -65,6 +66,14 @@ function setProductStatus(message, tone = "info") {
   productStatus.classList.toggle("is-error", tone === "error");
 }
 
+function getProductImageUrls(product) {
+  if (!product || !Array.isArray(product.images)) {
+    return [];
+  }
+
+  return product.images.map((image) => image.image_url).filter(Boolean);
+}
+
 function renderModalDots() {
   if (!productModalDots) {
     return;
@@ -72,12 +81,17 @@ function renderModalDots() {
 
   productModalDots.replaceChildren();
 
+  if (modalState.imageUrls.length <= 1) {
+    productModalDots.hidden = true;
+    return;
+  }
+
   modalState.imageUrls.forEach((_, index) => {
     const dot = createElement("span", index === modalState.currentIndex ? "dot active" : "dot");
     productModalDots.appendChild(dot);
   });
 
-  productModalDots.hidden = modalState.imageUrls.length <= 1;
+  productModalDots.hidden = false;
 }
 
 function renderModalImage() {
@@ -87,8 +101,9 @@ function renderModalImage() {
 
   const currentImageUrl = modalState.imageUrls[modalState.currentIndex];
   const hasMultipleImages = modalState.imageUrls.length > 1;
+  const hasImages = modalState.imageUrls.length > 0;
 
-  if (!currentImageUrl) {
+  if (!hasImages || !currentImageUrl) {
     productModalImage.hidden = true;
     productModalImage.removeAttribute("src");
     productModalPlaceholder.hidden = false;
@@ -146,7 +161,7 @@ function openProductModal(product) {
   }
 
   modalState.product = product;
-  modalState.imageUrls = product.images.map((image) => image.image_url).filter(Boolean);
+  modalState.imageUrls = getProductImageUrls(product);
   modalState.currentIndex = 0;
 
   productModalTitle.textContent = product.name;
@@ -165,11 +180,17 @@ function openProductModal(product) {
 }
 
 function createCard(product) {
-  const imageUrls = product.images.map((image) => image.image_url).filter(Boolean);
+  const imageUrls = getProductImageUrls(product);
   let currentIndex = 0;
   let autoTimer = null;
+  let isVisible = false;
 
   const card = createElement("article", "card");
+  card.dataset.productId = product.id;
+  card.tabIndex = 0;
+  card.setAttribute("role", "button");
+  card.setAttribute("aria-label", `Bekijk details van ${product.name}`);
+
   const imageBox = createElement("div", "cardImage");
   const cardBody = createElement("div", "cardBody");
   const title = createElement("h3", "", product.name);
@@ -183,9 +204,9 @@ function createCard(product) {
   const priceRow = createElement("div", "cardPriceRow");
   const detailsButton = createElement("button", "cardMore", "Lees meer");
   const price = createElement("div", "price", formatPrice(product));
+  let activeImage = null;
 
   detailsButton.type = "button";
-  detailsButton.dataset.productId = product.id;
   detailsButton.setAttribute("aria-label", `Lees meer over ${product.name}`);
 
   if (product.featured) {
@@ -193,7 +214,8 @@ function createCard(product) {
   }
 
   if (imageUrls.length > 0) {
-    imageBox.appendChild(createSlideImage(imageUrls[0], product.name, "activeImg"));
+    activeImage = createSlideImage(imageUrls[0], product.name, "activeImg");
+    imageBox.appendChild(activeImage);
   } else {
     const placeholder = createElement("div", "cardPlaceholder");
     placeholder.appendChild(createElement("span", "", "Afbeelding volgt binnenkort"));
@@ -212,17 +234,15 @@ function createCard(product) {
     imageBox.append(previousButton, nextButton);
 
     previousButton.addEventListener("click", (event) => {
+      event.preventDefault();
       event.stopPropagation();
-      setImage(currentIndex === 0 ? imageUrls.length - 1 : currentIndex - 1, -1);
+      changeImage(-1, true);
     });
 
     nextButton.addEventListener("click", (event) => {
+      event.preventDefault();
       event.stopPropagation();
-      setImage(currentIndex === imageUrls.length - 1 ? 0 : currentIndex + 1, 1);
-    });
-
-    imageBox.addEventListener("click", () => {
-      setImage(currentIndex === imageUrls.length - 1 ? 0 : currentIndex + 1, 1);
+      changeImage(1, true);
     });
   }
 
@@ -235,74 +255,73 @@ function createCard(product) {
     });
   }
 
-  function setImage(nextIndex, direction) {
-    if (imageUrls.length <= 1 || nextIndex === currentIndex) {
+  function renderCurrentImage() {
+    if (!activeImage || !imageUrls.length) {
       return;
     }
 
-    const oldImage = imageBox.querySelector(".activeImg");
-
-    if (!oldImage) {
-      return;
-    }
-
-    const newImage = createSlideImage(imageUrls[nextIndex], product.name, "incoming");
-    newImage.style.opacity = "0";
-    newImage.style.transform = `translateX(${direction * 100}%) scale(1.05)`;
-
-    imageBox.querySelectorAll("img.incoming, img.leaving").forEach((image) => image.remove());
-    imageBox.appendChild(newImage);
-
-    oldImage.classList.remove("activeImg");
-    oldImage.classList.add("leaving");
-
-    newImage.offsetWidth;
-
-    requestAnimationFrame(() => {
-      newImage.style.opacity = "1";
-      newImage.style.transform = "translateX(0) scale(1)";
-
-      oldImage.style.opacity = "0";
-      oldImage.style.transform = `translateX(${-direction * 100}%) scale(0.95)`;
-    });
-
-    newImage.addEventListener(
-      "transitionend",
-      (event) => {
-        if (event.propertyName !== "transform") {
-          return;
-        }
-
-        newImage.classList.remove("incoming");
-        newImage.classList.add("activeImg");
-
-        if (oldImage.parentNode) {
-          oldImage.remove();
-        }
-      },
-      { once: true },
-    );
-
-    currentIndex = nextIndex;
+    activeImage.src = imageUrls[currentIndex];
+    activeImage.alt = product.name;
     renderDots();
-    resetAutoSlide();
   }
 
-  function resetAutoSlide() {
+  function stopAutoSlide() {
     if (autoTimer) {
       clearInterval(autoTimer);
+      autoTimer = null;
+    }
+  }
+
+  function startAutoSlide() {
+    if (imageUrls.length <= 1 || autoTimer || !isVisible) {
+      return;
     }
 
     autoTimer = window.setInterval(() => {
-      setImage(currentIndex === imageUrls.length - 1 ? 0 : currentIndex + 1, 1);
-    }, 4500);
+      changeImage(1, false);
+    }, CARD_SLIDE_INTERVAL);
+  }
+
+  function restartAutoSlide() {
+    stopAutoSlide();
+    if (isVisible) {
+      startAutoSlide();
+    }
+  }
+
+  function changeImage(direction, shouldRestartTimer) {
+    if (imageUrls.length <= 1) {
+      return;
+    }
+
+    currentIndex = (currentIndex + direction + imageUrls.length) % imageUrls.length;
+    renderCurrentImage();
+
+    if (shouldRestartTimer) {
+      restartAutoSlide();
+    }
   }
 
   card.startAutoSlide = () => {
-    if (imageUrls.length > 1 && !autoTimer) {
-      resetAutoSlide();
-    }
+    isVisible = true;
+    startAutoSlide();
   };
+
+  card.stopAutoSlide = () => {
+    isVisible = false;
+    stopAutoSlide();
+  };
+
+  card.addEventListener("keydown", (event) => {
+    if (event.target !== card) {
+      return;
+    }
+
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      openProductModal(product);
+    }
+  });
 
   if (imageUrls.length > 1) {
     renderDots();
@@ -328,6 +347,12 @@ function renderProducts(products) {
     cardObserver.disconnect();
   }
 
+  productGrid.querySelectorAll(".card").forEach((card) => {
+    if (typeof card.stopAutoSlide === "function") {
+      card.stopAutoSlide();
+    }
+  });
+
   productGrid.replaceChildren();
 
   if (!products.length) {
@@ -346,15 +371,11 @@ function renderProducts(products) {
   cardObserver = new IntersectionObserver(
     (entries) => {
       entries.forEach((entry) => {
-        if (!entry.isIntersecting) {
-          return;
-        }
-
-        if (typeof entry.target.startAutoSlide === "function") {
+        if (entry.isIntersecting && typeof entry.target.startAutoSlide === "function") {
           entry.target.startAutoSlide();
+        } else if (!entry.isIntersecting && typeof entry.target.stopAutoSlide === "function") {
+          entry.target.stopAutoSlide();
         }
-
-        cardObserver.unobserve(entry.target);
       });
     },
     { threshold: 0.2 },
@@ -403,16 +424,17 @@ if (productModalClose && productModal) {
 
 if (productGrid) {
   productGrid.addEventListener("click", (event) => {
-    const button = event.target.closest(".cardMore[data-product-id]");
-
-    if (!button) {
+    if (event.target.closest(".arrow")) {
       return;
     }
 
-    event.preventDefault();
-    event.stopPropagation();
+    const card = event.target.closest(".card[data-product-id]");
 
-    const selectedProduct = currentProducts.find((product) => product.id === button.dataset.productId);
+    if (!card) {
+      return;
+    }
+
+    const selectedProduct = currentProducts.find((product) => product.id === card.dataset.productId);
     openProductModal(selectedProduct || null);
   });
 }

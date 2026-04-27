@@ -40,6 +40,8 @@ const cropZoom = document.querySelector("#cropZoom");
 const cropFileName = document.querySelector("#cropFileName");
 const cropCancelButton = document.querySelector("#cropCancelButton");
 const cropConfirmButton = document.querySelector("#cropConfirmButton");
+const cropModeCropButton = document.querySelector("#cropModeCropButton");
+const cropModeFitButton = document.querySelector("#cropModeFitButton");
 
 const state = {
   products: [],
@@ -52,6 +54,7 @@ const state = {
 const cropState = {
   resolver: null,
   objectUrl: "",
+  mode: "crop",
   zoom: 1,
   baseScale: 1,
   imageX: 0,
@@ -577,17 +580,34 @@ async function handleDeleteProduct() {
 }
 
 function updateCropImageMetrics() {
+  if (!cropImage.naturalWidth || !cropImage.naturalHeight) {
+    return;
+  }
+
   const frameSize = cropViewport.clientWidth;
-  const scale = cropState.baseScale * cropState.zoom;
 
-  cropState.renderWidth = cropImage.naturalWidth * scale;
-  cropState.renderHeight = cropImage.naturalHeight * scale;
+  if (cropState.mode === "fit") {
+    const scale = Math.min(
+      frameSize / cropImage.naturalWidth,
+      frameSize / cropImage.naturalHeight,
+    );
 
-  const minX = Math.min(0, frameSize - cropState.renderWidth);
-  const minY = Math.min(0, frameSize - cropState.renderHeight);
+    cropState.renderWidth = cropImage.naturalWidth * scale;
+    cropState.renderHeight = cropImage.naturalHeight * scale;
+    cropState.imageX = (frameSize - cropState.renderWidth) / 2;
+    cropState.imageY = (frameSize - cropState.renderHeight) / 2;
+  } else {
+    const scale = cropState.baseScale * cropState.zoom;
 
-  cropState.imageX = clamp(cropState.imageX, minX, 0);
-  cropState.imageY = clamp(cropState.imageY, minY, 0);
+    cropState.renderWidth = cropImage.naturalWidth * scale;
+    cropState.renderHeight = cropImage.naturalHeight * scale;
+
+    const minX = Math.min(0, frameSize - cropState.renderWidth);
+    const minY = Math.min(0, frameSize - cropState.renderHeight);
+
+    cropState.imageX = clamp(cropState.imageX, minX, 0);
+    cropState.imageY = clamp(cropState.imageY, minY, 0);
+  }
 
   cropImage.style.width = `${cropState.renderWidth}px`;
   cropImage.style.height = `${cropState.renderHeight}px`;
@@ -595,25 +615,62 @@ function updateCropImageMetrics() {
   cropImage.style.top = `${cropState.imageY}px`;
 }
 
-function initializeCropper() {
+function syncCropModeUi() {
+  const isFitMode = cropState.mode === "fit";
+
+  cropViewport.classList.toggle("is-fit", isFitMode);
+  cropZoom.disabled = isFitMode;
+  cropModeCropButton.classList.toggle("is-active", !isFitMode);
+  cropModeFitButton.classList.toggle("is-active", isFitMode);
+  cropModeCropButton.setAttribute("aria-pressed", String(!isFitMode));
+  cropModeFitButton.setAttribute("aria-pressed", String(isFitMode));
+  document.querySelector("#cropTitle").textContent = isFitMode
+    ? "Volledig beeld passen"
+    : "Vierkante uitsnede";
+  cropConfirmButton.textContent = isFitMode ? "Gebruik passend beeld" : "Gebruik uitsnede";
+}
+
+function resetCropPlacement() {
   const frameSize = cropViewport.clientWidth;
 
+  cropZoom.value = "1";
+  cropState.zoom = 1;
   cropState.baseScale = Math.max(
     frameSize / cropImage.naturalWidth,
     frameSize / cropImage.naturalHeight,
   );
-  cropState.zoom = 1;
-  cropZoom.value = "1";
   cropState.imageX = (frameSize - cropImage.naturalWidth * cropState.baseScale) / 2;
   cropState.imageY = (frameSize - cropImage.naturalHeight * cropState.baseScale) / 2;
 
+  syncCropModeUi();
   updateCropImageMetrics();
+}
+
+function initializeCropper() {
+  resetCropPlacement();
+}
+
+function setCropMode(mode) {
+  if (mode !== "crop" && mode !== "fit") {
+    return;
+  }
+
+  cropState.isDragging = false;
+  cropViewport.classList.remove("is-dragging");
+  cropState.mode = mode;
+
+  if (cropImage.naturalWidth && cropImage.naturalHeight) {
+    resetCropPlacement();
+  } else {
+    syncCropModeUi();
+  }
 }
 
 function closeCropper() {
   cropModal.hidden = true;
   document.body.classList.remove("crop-open");
   cropState.isDragging = false;
+  cropViewport.classList.remove("is-dragging");
   cropImage.removeAttribute("src");
 
   if (cropState.objectUrl) {
@@ -640,8 +697,6 @@ async function confirmCropper() {
   cropCancelButton.disabled = true;
 
   try {
-    const frameSize = cropViewport.clientWidth;
-    const scale = cropState.baseScale * cropState.zoom;
     const canvas = document.createElement("canvas");
     const context = canvas.getContext("2d");
 
@@ -652,21 +707,38 @@ async function confirmCropper() {
     canvas.width = 1000;
     canvas.height = 1000;
 
-    const sourceX = -cropState.imageX / scale;
-    const sourceY = -cropState.imageY / scale;
-    const sourceSize = frameSize / scale;
+    if (cropState.mode === "fit") {
+      const scale = Math.min(
+        canvas.width / cropImage.naturalWidth,
+        canvas.height / cropImage.naturalHeight,
+      );
+      const drawWidth = cropImage.naturalWidth * scale;
+      const drawHeight = cropImage.naturalHeight * scale;
+      const drawX = (canvas.width - drawWidth) / 2;
+      const drawY = (canvas.height - drawHeight) / 2;
 
-    context.drawImage(
-      cropImage,
-      sourceX,
-      sourceY,
-      sourceSize,
-      sourceSize,
-      0,
-      0,
-      canvas.width,
-      canvas.height,
-    );
+      context.fillStyle = "#000";
+      context.fillRect(0, 0, canvas.width, canvas.height);
+      context.drawImage(cropImage, drawX, drawY, drawWidth, drawHeight);
+    } else {
+      const frameSize = cropViewport.clientWidth;
+      const scale = cropState.baseScale * cropState.zoom;
+      const sourceX = -cropState.imageX / scale;
+      const sourceY = -cropState.imageY / scale;
+      const sourceSize = frameSize / scale;
+
+      context.drawImage(
+        cropImage,
+        sourceX,
+        sourceY,
+        sourceSize,
+        sourceSize,
+        0,
+        0,
+        canvas.width,
+        canvas.height,
+      );
+    }
 
     const blob = await new Promise((resolve) => {
       canvas.toBlob(resolve, "image/webp", 0.9);
@@ -691,9 +763,12 @@ function openCropper(file) {
   return new Promise((resolve, reject) => {
     cropState.resolver = resolve;
     cropState.objectUrl = URL.createObjectURL(file);
+    cropState.mode = "crop";
     cropFileName.textContent = file.name;
     cropConfirmButton.disabled = false;
     cropCancelButton.disabled = false;
+    cropViewport.classList.remove("is-dragging");
+    syncCropModeUi();
     cropModal.hidden = false;
     document.body.classList.add("crop-open");
     cropImage.onload = () => {
@@ -847,6 +922,12 @@ productForm.addEventListener("submit", handleSave);
 imageInput.addEventListener("change", handleImageSelection);
 cropCancelButton.addEventListener("click", cancelCropper);
 cropConfirmButton.addEventListener("click", confirmCropper);
+cropModeCropButton.addEventListener("click", () => {
+  setCropMode("crop");
+});
+cropModeFitButton.addEventListener("click", () => {
+  setCropMode("fit");
+});
 
 cropModal.addEventListener("click", (event) => {
   if (event.target === cropModal) {
@@ -861,6 +942,10 @@ window.addEventListener("keydown", (event) => {
 });
 
 cropZoom.addEventListener("input", () => {
+  if (cropState.mode !== "crop") {
+    return;
+  }
+
   const frameSize = cropViewport.clientWidth;
   const previousScale = cropState.baseScale * cropState.zoom;
   const previousCenterX = (frameSize / 2 - cropState.imageX) / previousScale;
@@ -876,11 +961,12 @@ cropZoom.addEventListener("input", () => {
 });
 
 cropViewport.addEventListener("pointerdown", (event) => {
-  if (cropModal.hidden) {
+  if (cropModal.hidden || cropState.mode !== "crop") {
     return;
   }
 
   cropState.isDragging = true;
+  cropViewport.classList.add("is-dragging");
   cropState.dragStartX = event.clientX;
   cropState.dragStartY = event.clientY;
   cropState.startImageX = cropState.imageX;
@@ -889,7 +975,7 @@ cropViewport.addEventListener("pointerdown", (event) => {
 });
 
 cropViewport.addEventListener("pointermove", (event) => {
-  if (!cropState.isDragging) {
+  if (!cropState.isDragging || cropState.mode !== "crop") {
     return;
   }
 
@@ -901,6 +987,7 @@ cropViewport.addEventListener("pointermove", (event) => {
 function stopCropDrag(event) {
   if (cropState.isDragging) {
     cropState.isDragging = false;
+    cropViewport.classList.remove("is-dragging");
     cropViewport.releasePointerCapture(event.pointerId);
   }
 }
