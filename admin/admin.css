@@ -525,6 +525,10 @@ p{
   backdrop-filter:blur(14px);
 }
 
+.cropModal[hidden] {
+  display: none !important;
+}
+
 .cropDialog{
   width:min(760px,100%);
   padding:24px;
