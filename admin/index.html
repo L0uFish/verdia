@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="nl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Verdia Admin</title>
+  <meta name="robots" content="noindex,nofollow" />
+  <link rel="stylesheet" href="./admin.css?v=1.0" />
+</head>
+<body class="adminPage">
+  <div class="adminShell">
+    <header class="adminHeader">
+      <div>
+        <p class="eyebrow">Verdia</p>
+        <h1>Product Admin</h1>
+        <p class="adminIntro">Beheer producten en galerijbeelden rechtstreeks vanuit Supabase.</p>
+      </div>
+      <div class="adminHeaderActions">
+        <a class="btn ghost" href="../index.html">Bekijk website</a>
+      </div>
+    </header>
+
+    <div class="adminNotice">
+      <strong>Open MVP</strong>
+      <span>Deze admin heeft bewust geen login. Iedereen met toegang tot <code>/admin</code> kan producten aanpassen.</span>
+    </div>
+
+    <main class="adminLayout">
+      <aside class="panel sidebar">
+        <div class="panelHeader">
+          <div>
+            <p class="eyebrow">Catalogus</p>
+            <h2>Producten</h2>
+          </div>
+          <button type="button" id="newProductButton" class="btn primary">Nieuw product</button>
+        </div>
+
+        <p id="listStatus" class="statusText">Producten laden...</p>
+        <div id="productList" class="productList"></div>
+      </aside>
+
+      <section class="panel editorPanel">
+        <form id="productForm" novalidate>
+          <div class="panelHeader formHeader">
+            <div>
+              <p class="eyebrow">Bewerken</p>
+              <h2 id="formTitle">Nieuw product</h2>
+            </div>
+            <div class="formActions">
+              <button type="button" id="deleteProductButton" class="btn danger">Verwijder</button>
+              <button type="submit" id="saveProductButton" class="btn primary">Product opslaan</button>
+            </div>
+          </div>
+
+          <p id="formFeedback" class="feedback" hidden></p>
+
+          <div class="formGrid">
+            <label class="field">
+              <span>Naam</span>
+              <input id="nameInput" type="text" maxlength="120" required />
+            </label>
+
+            <label class="field fieldWide">
+              <span>Beschrijving</span>
+              <textarea id="descriptionInput" rows="5" maxlength="1200" required></textarea>
+            </label>
+
+            <label class="field">
+              <span>Prijslabel</span>
+              <select id="priceLabelInput">
+                <option value="vanaf">Vanaf</option>
+                <option value="op_aanvraag">Prijs op aanvraag</option>
+              </select>
+            </label>
+
+            <label class="field">
+              <span>Prijs</span>
+              <input id="priceInput" type="number" min="0" step="0.01" inputmode="decimal" />
+              <small id="priceHint">Deze prijs verschijnt op de site als "Vanaf EUR ...".</small>
+            </label>
+
+            <label class="field">
+              <span>Sorteervolgorde</span>
+              <input id="sortOrderInput" type="number" step="1" value="0" />
+            </label>
+
+            <label class="field checkboxField">
+              <span>Uitgelicht</span>
+              <div class="checkboxRow">
+                <input id="featuredInput" type="checkbox" />
+                <span>Toon een "Uitgelicht" badge op de website</span>
+              </div>
+            </label>
+          </div>
+
+          <section class="imageSection">
+            <div class="imageSectionHead">
+              <div>
+                <p class="eyebrow">Galerij</p>
+                <h3>Afbeeldingen</h3>
+                <p class="helperText">Maximaal 8 vierkante beelden per product. Nieuwe afbeeldingen worden pas geupload bij opslaan.</p>
+              </div>
+
+              <div class="imageTools">
+                <span id="imageCount" class="imageCount">0 / 8</span>
+                <label class="uploadButton">
+                  <input id="imageInput" type="file" accept="image/*" multiple />
+                  <span id="uploadButtonText">Afbeeldingen toevoegen</span>
+                </label>
+              </div>
+            </div>
+
+            <p id="uploadStatus" class="statusText"></p>
+            <div id="imagePreviewGrid" class="imagePreviewGrid"></div>
+          </section>
+        </form>
+      </section>
+    </main>
+  </div>
+
+  <div id="cropModal" class="cropModal" hidden>
+    <div class="cropDialog" role="dialog" aria-modal="true" aria-labelledby="cropTitle">
+      <div class="cropHeader">
+        <div>
+          <p class="eyebrow">Afbeelding bijsnijden</p>
+          <h2 id="cropTitle">Vierkante uitsnede</h2>
+          <p id="cropFileName" class="helperText"></p>
+        </div>
+      </div>
+
+      <div class="cropStage">
+        <div id="cropViewport" class="cropViewport">
+          <img id="cropImage" alt="Voorbeeld van de uitsnede" />
+          <div class="cropFrame"></div>
+        </div>
+      </div>
+
+      <label class="field cropField">
+        <span>Zoom</span>
+        <input id="cropZoom" type="range" min="1" max="3" step="0.01" value="1" />
+      </label>
+
+      <div class="cropActions">
+        <button type="button" id="cropCancelButton" class="btn ghost">Annuleren</button>
+        <button type="button" id="cropConfirmButton" class="btn primary">Gebruik uitsnede</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="../supabase-config.js"></script>
+  <script type="module" src="./admin.js?v=1.0"></script>
+</body>
+</html>

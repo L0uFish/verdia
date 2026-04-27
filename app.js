@@ -1,171 +1,266 @@
-const bouquets = [
-  { id: 10, name: "Noir Élégance", price: "vanaf €89" },
-  { id: 2, name: "Golden Blush", price: "vanaf €79" },
-  { id: 6, name: "Maison Verdia", price: "vanaf €119" },
-  { id: 7, name: "Champagne Bloom", price: "vanaf €99" },
-  { id: 9, name: "Royal Garden", price: "vanaf €129" },
-  { id: 5, name: "Soft Opulence", price: "vanaf €95" },
-  { id: 4, name: "Classic Silk", price: "vanaf €85" },
-  { id: 14, name: "Grand Statement", price: "prijs op aanvraag" },
-  { id: 15, name: "Atelier Luxe", price: "prijs op aanvraag" },
-  { id: 1, name: "Petit Verdia", price: "vanaf €59" },
-  { id: 11, name: "Pure Romance", price: "vanaf €75" },
-  { id: 13, name: "Timeless Gift", price: "vanaf €69" }
-];
+import { fetchProductsWithImages, formatPrice } from "./supabase.js";
 
-const imageMap = {
-  1: 1, 2: 7, 3: 2, 4: 4, 5: 4, 6: 8, 7: 8, 8: 2,
-  9: 9, 10: 4, 11: 1, 12: 1, 13: 1, 14: 1, 15: 1, 16: 1
-};
+const productGrid = document.querySelector("#productGrid");
+const productStatus = document.querySelector("#productStatus");
+const demoBanner = document.querySelector("#demoBanner");
+const closeDemoBanner = document.querySelector("#closeDemoBanner");
 
-const grid = document.querySelector("#productGrid");
+let cardObserver = null;
 
-function imagePath(id, index) {
-  return `images/Verdia ${id}_${index}.jpg`;
+function createElement(tagName, className, text) {
+  const element = document.createElement(tagName);
+
+  if (className) {
+    element.className = className;
+  }
+
+  if (typeof text === "string") {
+    element.textContent = text;
+  }
+
+  return element;
 }
 
-function createCard(item) {
-  const count = imageMap[item.id] || 1;
-  let current = 1;
+function createSlideImage(source, alt, className) {
+  const image = document.createElement("img");
+  image.src = source;
+  image.alt = alt;
+  image.loading = "lazy";
+  image.className = className;
+  return image;
+}
+
+function setProductStatus(message, tone = "info") {
+  if (!productStatus) {
+    return;
+  }
+
+  if (!message) {
+    productStatus.hidden = true;
+    productStatus.textContent = "";
+    productStatus.classList.remove("is-error");
+    return;
+  }
+
+  productStatus.hidden = false;
+  productStatus.textContent = message;
+  productStatus.classList.toggle("is-error", tone === "error");
+}
+
+function createCard(product) {
+  const imageUrls = product.images.map((image) => image.image_url).filter(Boolean);
+  let currentIndex = 0;
   let autoTimer = null;
 
-  const card = document.createElement("article");
-  card.className = "card";
+  const card = createElement("article", "card");
+  const imageBox = createElement("div", "cardImage");
+  const cardBody = createElement("div", "cardBody");
+  const title = createElement("h3", "", product.name);
+  const description = createElement(
+    "p",
+    "cardDescription",
+    product.description || "Beschrijving volgt binnenkort.",
+  );
+  const price = createElement("div", "price", formatPrice(product));
+  const dots = createElement("div", "dots");
 
-  card.innerHTML = `
-    <div class="cardImage">
-      <img class="activeImg" src="${imagePath(item.id, current)}" alt="${item.name}">
-      ${count > 1 ? `
-        <button class="arrow prev">‹</button>
-        <button class="arrow next">›</button>
-      ` : ""}
-    </div>
-    <div class="cardBody">
-      <h3>${item.name}</h3>
-      <div class="price">${item.price}</div>
-      <div class="dots"></div>
-    </div>
-  `;
+  if (product.featured) {
+    imageBox.appendChild(createElement("span", "featuredBadge", "Uitgelicht"));
+  }
 
-  const imageBox = card.querySelector(".cardImage");
-  const dots = card.querySelector(".dots");
+  if (imageUrls.length > 0) {
+    imageBox.appendChild(createSlideImage(imageUrls[0], product.name, "activeImg"));
+  } else {
+    const placeholder = createElement("div", "cardPlaceholder");
+    placeholder.appendChild(createElement("span", "", "Afbeelding volgt binnenkort"));
+    imageBox.appendChild(placeholder);
+  }
+
+  if (imageUrls.length > 1) {
+    const previousButton = createElement("button", "arrow prev", "‹");
+    const nextButton = createElement("button", "arrow next", "›");
+
+    previousButton.type = "button";
+    previousButton.setAttribute("aria-label", "Vorige afbeelding");
+    nextButton.type = "button";
+    nextButton.setAttribute("aria-label", "Volgende afbeelding");
+
+    imageBox.append(previousButton, nextButton);
+
+    previousButton.addEventListener("click", (event) => {
+      event.stopPropagation();
+      setImage(currentIndex === 0 ? imageUrls.length - 1 : currentIndex - 1, -1);
+    });
+
+    nextButton.addEventListener("click", (event) => {
+      event.stopPropagation();
+      setImage(currentIndex === imageUrls.length - 1 ? 0 : currentIndex + 1, 1);
+    });
+
+    imageBox.addEventListener("click", () => {
+      setImage(currentIndex === imageUrls.length - 1 ? 0 : currentIndex + 1, 1);
+    });
+  }
 
   function renderDots() {
-    dots.innerHTML = "";
-    for (let i = 1; i <= count; i++) {
-      const dot = document.createElement("span");
-      dot.className = `dot ${i === current ? "active" : ""}`;
+    dots.replaceChildren();
+
+    imageUrls.forEach((_, index) => {
+      const dot = createElement("span", index === currentIndex ? "dot active" : "dot");
       dots.appendChild(dot);
-    }
+    });
   }
 
-  function setImage(next, direction = 1) {
-    if (next === current || count <= 1) return;
-
-    const oldImg = imageBox.querySelector(".activeImg");
-    if (!oldImg) return; // Safety check
-
-    const newImg = document.createElement("img");
-    newImg.src = imagePath(item.id, next);
-    newImg.alt = item.name;
-    
-    // 1. Prepare new image off-screen
-    newImg.className = "incoming";
-    newImg.style.opacity = "0";
-    newImg.style.transform = `translateX(${direction * 100}%) scale(1.05)`;
-
-    // Remove any stale incoming/leaving images before adding the new slide.
-    imageBox.querySelectorAll("img.incoming, img.leaving").forEach(el => el.remove());
-    imageBox.appendChild(newImg);
-
-    // 2. Prepare old image
-    oldImg.classList.remove("activeImg");
-    oldImg.classList.add("leaving");
-
-    // Force reflow before animating
-    newImg.offsetWidth;
-
-    // 3. The Animation
-    requestAnimationFrame(() => {
-        newImg.style.opacity = "1";
-        newImg.style.transform = "translateX(0) scale(1)";
-
-        oldImg.style.opacity = "0";
-        oldImg.style.transform = `translateX(${-direction * 100}%) scale(0.95)`;
-    });
-
-    function cleanup() {
-      newImg.classList.remove("incoming");
-      newImg.classList.add("activeImg");
-      if (oldImg.parentNode) oldImg.remove();
+  function setImage(nextIndex, direction = 1) {
+    if (imageUrls.length <= 1 || nextIndex === currentIndex) {
+      return;
     }
 
-    newImg.addEventListener("transitionend", function onTransitionEnd(event) {
-      if (event.propertyName === "transform") {
-        newImg.removeEventListener("transitionend", onTransitionEnd);
-        cleanup();
-      }
+    const oldImage = imageBox.querySelector(".activeImg");
+
+    if (!oldImage) {
+      return;
+    }
+
+    const newImage = createSlideImage(imageUrls[nextIndex], product.name, "incoming");
+    newImage.style.opacity = "0";
+    newImage.style.transform = `translateX(${direction * 100}%) scale(1.05)`;
+
+    imageBox.querySelectorAll("img.incoming, img.leaving").forEach((image) => image.remove());
+    imageBox.appendChild(newImage);
+
+    oldImage.classList.remove("activeImg");
+    oldImage.classList.add("leaving");
+
+    newImage.offsetWidth;
+
+    requestAnimationFrame(() => {
+      newImage.style.opacity = "1";
+      newImage.style.transform = "translateX(0) scale(1)";
+
+      oldImage.style.opacity = "0";
+      oldImage.style.transform = `translateX(${-direction * 100}%) scale(0.95)`;
     });
 
-    current = next;
+    newImage.addEventListener(
+      "transitionend",
+      (event) => {
+        if (event.propertyName !== "transform") {
+          return;
+        }
+
+        newImage.classList.remove("incoming");
+        newImage.classList.add("activeImg");
+
+        if (oldImage.parentNode) {
+          oldImage.remove();
+        }
+      },
+      { once: true },
+    );
+
+    currentIndex = nextIndex;
     renderDots();
     resetAutoSlide();
-}
-
-  function resetAutoSlide() {
-    if (autoTimer) clearInterval(autoTimer);
-    autoTimer = setInterval(() => {
-      setImage(current === count ? 1 : current + 1, 1);
-    }, 4000 + Math.random() * 1000);
   }
 
-  // Event Listeners
-  const nextBtn = card.querySelector(".next");
-  const prevBtn = card.querySelector(".prev");
+  function resetAutoSlide() {
+    if (autoTimer) {
+      clearInterval(autoTimer);
+    }
 
-  if (nextBtn) {
-    nextBtn.addEventListener("click", (e) => {
-      e.stopPropagation(); // Prevent conflicts
-      setImage(current === count ? 1 : current + 1, 1);
-    });
-    prevBtn.addEventListener("click", (e) => {
-      e.stopPropagation();
-      setImage(current === 1 ? count : current - 1, -1);
-    });
-    
-    // Clicking the image area also advances the slide
-    imageBox.addEventListener("click", () => {
-        setImage(current === count ? 1 : current + 1, 1);
-    });
+    autoTimer = window.setInterval(() => {
+      setImage(currentIndex === imageUrls.length - 1 ? 0 : currentIndex + 1, 1);
+    }, 4500);
   }
 
   card.startAutoSlide = () => {
-    if (count > 1 && !autoTimer) resetAutoSlide();
+    if (imageUrls.length > 1 && !autoTimer) {
+      resetAutoSlide();
+    }
   };
 
-  renderDots();
+  cardBody.append(title, description, price);
+
+  if (imageUrls.length > 1) {
+    renderDots();
+    cardBody.appendChild(dots);
+  }
+
+  card.append(imageBox, cardBody);
+
   return card;
 }
 
-// Initialize Grid
-bouquets.forEach(item => grid.appendChild(createCard(item)));
+function renderProducts(products) {
+  if (!productGrid) {
+    return;
+  }
 
-// Intersection Observer to start animation only when visible
-const observer = new IntersectionObserver(entries => {
-  entries.forEach(entry => {
-    if (entry.isIntersecting) {
-      entry.target.startAutoSlide?.();
-    }
+  if (cardObserver) {
+    cardObserver.disconnect();
+  }
+
+  productGrid.replaceChildren();
+
+  if (!products.length) {
+    setProductStatus("Er staan nog geen producten online.");
+    return;
+  }
+
+  const fragment = document.createDocumentFragment();
+
+  products.forEach((product) => {
+    fragment.appendChild(createCard(product));
   });
-}, { threshold: 0.2 });
 
-document.querySelectorAll(".card").forEach(card => observer.observe(card));
+  productGrid.appendChild(fragment);
 
-const demoBanner = document.querySelector("#demoBanner");
-const closeDemoBanner = document.querySelector("#closeDemoBanner");
+  cardObserver = new IntersectionObserver(
+    (entries) => {
+      entries.forEach((entry) => {
+        if (!entry.isIntersecting) {
+          return;
+        }
+
+        if (typeof entry.target.startAutoSlide === "function") {
+          entry.target.startAutoSlide();
+        }
+        cardObserver.unobserve(entry.target);
+      });
+    },
+    { threshold: 0.2 },
+  );
+
+  productGrid.querySelectorAll(".card").forEach((card) => {
+    cardObserver.observe(card);
+  });
+}
+
+async function loadProducts() {
+  if (!productGrid) {
+    return;
+  }
+
+  setProductStatus("Collectie wordt geladen...");
+
+  try {
+    const products = await fetchProductsWithImages();
+    renderProducts(products);
+
+    if (products.length) {
+      setProductStatus("");
+    }
+  } catch (error) {
+    productGrid.replaceChildren();
+    setProductStatus(error.message || "De collectie kon niet geladen worden.", "error");
+  }
+}
 
 if (closeDemoBanner && demoBanner) {
   closeDemoBanner.addEventListener("click", () => {
     demoBanner.classList.add("hidden");
   });
 }
+
+loadProducts();

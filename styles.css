@@ -733,3 +733,72 @@ footer{
 .contactForm .formGrid button{
   align-self:flex-start !important;
 }
+
+.catalogStatus{
+  margin:0 0 24px;
+  padding:14px 18px;
+  border-radius:18px;
+  border:1px solid rgba(244,223,155,.18);
+  background:rgba(255,255,255,.04);
+  color:var(--muted);
+}
+
+.catalogStatus.is-error{
+  border-color:rgba(255,152,152,.28);
+  background:rgba(74,24,24,.26);
+  color:#ffd4d4;
+}
+
+.featuredBadge{
+  position:absolute;
+  top:16px;
+  left:16px;
+  z-index:5;
+  min-height:34px;
+  padding:0 14px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  border-radius:999px;
+  border:1px solid rgba(244,223,155,.35);
+  background:rgba(5,5,5,.72);
+  color:var(--gold2);
+  font-size:.74rem;
+  font-weight:700;
+  letter-spacing:.14em;
+  text-transform:uppercase;
+}
+
+.cardBody{
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+}
+
+.cardDescription{
+  margin:0;
+  color:var(--muted);
+  font-size:.96rem;
+  line-height:1.65;
+}
+
+.card .price{
+  margin-top:auto;
+}
+
+.cardPlaceholder{
+  display:grid;
+  place-items:center;
+  width:100%;
+  height:100%;
+  padding:24px;
+  text-align:center;
+  background:
+    radial-gradient(circle at top left,rgba(244,223,155,.12),transparent 14rem),
+    linear-gradient(180deg,rgba(255,255,255,.06),rgba(255,255,255,.02));
+  color:var(--muted);
+}
+
+.cardPlaceholder span{
+  max-width:14rem;
+}

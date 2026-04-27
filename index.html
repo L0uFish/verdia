@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Verdia | Luxe zijden bloemstukken</title>
   <meta name="description" content="Verdia maakt luxueuze, tijdloze zijden bloemstukken in Schilde, Sint-Job-in-'t-Goor en Zoersel." />
-  <link rel="stylesheet" href="styles.css?=v3.6" />
+  <link rel="stylesheet" href="styles.css?v=4.0" />
 </head>
 <body>
   <div id="demoBanner" class="demoBanner">
@@ -84,6 +84,7 @@
         <p>Een luxueuze impressie van wat Verdia kan betekenen voor jouw interieur.</p>
       </div>
 
+      <p id="productStatus" class="catalogStatus">Collectie wordt geladen...</p>
       <div id="productGrid" class="grid"></div>
     </section>
 
@@ -153,6 +154,8 @@
     <span>Luxe zijden bloemstukken</span>
   </footer>
 
-  <script src="app.js?v=3.5"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="supabase-config.js"></script>
+  <script type="module" src="app.js?v=4.0"></script>
 </body>
 </html>
