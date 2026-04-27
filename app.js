@@ -4,8 +4,25 @@ const productGrid = document.querySelector("#productGrid");
 const productStatus = document.querySelector("#productStatus");
 const demoBanner = document.querySelector("#demoBanner");
 const closeDemoBanner = document.querySelector("#closeDemoBanner");
+const productModal = document.querySelector("#productModal");
+const productModalClose = document.querySelector("#productModalClose");
+const productModalTitle = document.querySelector("#productModalTitle");
+const productModalPrice = document.querySelector("#productModalPrice");
+const productModalDescription = document.querySelector("#productModalDescription");
+const productModalFeatured = document.querySelector("#productModalFeatured");
+const productModalImage = document.querySelector("#productModalImage");
+const productModalPlaceholder = document.querySelector("#productModalPlaceholder");
+const productModalDots = document.querySelector("#productModalDots");
+const productModalPrevious = document.querySelector("#productModalPrev");
+const productModalNext = document.querySelector("#productModalNext");
 
 let cardObserver = null;
+
+const modalState = {
+  product: null,
+  imageUrls: [],
+  currentIndex: 0,
+};
 
 function createElement(tagName, className, text) {
   const element = document.createElement(tagName);
@@ -47,6 +64,104 @@ function setProductStatus(message, tone = "info") {
   productStatus.classList.toggle("is-error", tone === "error");
 }
 
+function renderModalDots() {
+  if (!productModalDots) {
+    return;
+  }
+
+  productModalDots.replaceChildren();
+
+  modalState.imageUrls.forEach((_, index) => {
+    const dot = createElement("span", index === modalState.currentIndex ? "dot active" : "dot");
+    productModalDots.appendChild(dot);
+  });
+
+  productModalDots.hidden = modalState.imageUrls.length <= 1;
+}
+
+function renderModalImage() {
+  if (!productModalImage || !productModalPlaceholder || !productModalPrevious || !productModalNext) {
+    return;
+  }
+
+  const currentImageUrl = modalState.imageUrls[modalState.currentIndex];
+  const hasMultipleImages = modalState.imageUrls.length > 1;
+
+  if (!currentImageUrl) {
+    productModalImage.hidden = true;
+    productModalImage.removeAttribute("src");
+    productModalPlaceholder.hidden = false;
+  } else {
+    productModalImage.hidden = false;
+    productModalImage.src = currentImageUrl;
+    productModalImage.alt = modalState.product ? modalState.product.name : "";
+    productModalPlaceholder.hidden = true;
+  }
+
+  productModalPrevious.hidden = !hasMultipleImages;
+  productModalNext.hidden = !hasMultipleImages;
+
+  renderModalDots();
+}
+
+function setModalImage(nextIndex) {
+  if (!modalState.imageUrls.length) {
+    return;
+  }
+
+  if (nextIndex < 0) {
+    modalState.currentIndex = modalState.imageUrls.length - 1;
+  } else if (nextIndex >= modalState.imageUrls.length) {
+    modalState.currentIndex = 0;
+  } else {
+    modalState.currentIndex = nextIndex;
+  }
+
+  renderModalImage();
+}
+
+function closeProductModal() {
+  if (!productModal || productModal.hidden) {
+    return;
+  }
+
+  productModal.hidden = true;
+  document.body.classList.remove("modalOpen");
+  modalState.product = null;
+  modalState.imageUrls = [];
+  modalState.currentIndex = 0;
+}
+
+function openProductModal(product) {
+  if (
+    !productModal ||
+    !productModalTitle ||
+    !productModalPrice ||
+    !productModalDescription ||
+    !productModalFeatured
+  ) {
+    return;
+  }
+
+  modalState.product = product;
+  modalState.imageUrls = product.images.map((image) => image.image_url).filter(Boolean);
+  modalState.currentIndex = 0;
+
+  productModalTitle.textContent = product.name;
+  productModalPrice.textContent = formatPrice(product);
+  productModalDescription.textContent = product.description || "Beschrijving volgt binnenkort.";
+  productModalFeatured.hidden = !product.featured;
+
+  renderModalImage();
+
+  productModal.hidden = false;
+  document.body.classList.add("modalOpen");
+
+  if (productModalClose) {
+    productModalClose.focus();
+  }
+}
+
 function createCard(product) {
   const imageUrls = product.images.map((image) => image.image_url).filter(Boolean);
   let currentIndex = 0;
@@ -61,8 +176,17 @@ function createCard(product) {
     "cardDescription",
     product.description || "Beschrijving volgt binnenkort.",
   );
-  const price = createElement("div", "price", formatPrice(product));
+  const footer = createElement("div", "cardFooter");
   const dots = createElement("div", "dots");
+  const priceRow = createElement("div", "cardPriceRow");
+  const detailsButton = createElement("button", "cardMore", "Lees meer");
+  const price = createElement("div", "price", formatPrice(product));
+
+  detailsButton.type = "button";
+  detailsButton.setAttribute("aria-label", `Lees meer over ${product.name}`);
+  detailsButton.addEventListener("click", () => {
+    openProductModal(product);
+  });
 
   if (product.featured) {
     imageBox.appendChild(createElement("span", "featuredBadge", "Uitgelicht"));
@@ -111,7 +235,7 @@ function createCard(product) {
     });
   }
 
-  function setImage(nextIndex, direction = 1) {
+  function setImage(nextIndex, direction) {
     if (imageUrls.length <= 1 || nextIndex === currentIndex) {
       return;
     }
@@ -180,13 +304,14 @@ function createCard(product) {
     }
   };
 
-  cardBody.append(title, description, price);
-
   if (imageUrls.length > 1) {
     renderDots();
-    cardBody.appendChild(dots);
+    footer.appendChild(dots);
   }
 
+  priceRow.append(detailsButton, price);
+  footer.appendChild(priceRow);
+  cardBody.append(title, description, footer);
   card.append(imageBox, cardBody);
 
   return card;
@@ -226,6 +351,7 @@ function renderProducts(products) {
         if (typeof entry.target.startAutoSlide === "function") {
           entry.target.startAutoSlide();
         }
+
         cardObserver.unobserve(entry.target);
       });
     },
@@ -262,5 +388,45 @@ if (closeDemoBanner && demoBanner) {
     demoBanner.classList.add("hidden");
   });
 }
+
+if (productModalClose && productModal) {
+  productModalClose.addEventListener("click", closeProductModal);
+
+  productModal.addEventListener("click", (event) => {
+    if (event.target === productModal) {
+      closeProductModal();
+    }
+  });
+}
+
+if (productModalPrevious) {
+  productModalPrevious.addEventListener("click", () => {
+    setModalImage(modalState.currentIndex - 1);
+  });
+}
+
+if (productModalNext) {
+  productModalNext.addEventListener("click", () => {
+    setModalImage(modalState.currentIndex + 1);
+  });
+}
+
+window.addEventListener("keydown", (event) => {
+  if (!productModal || productModal.hidden) {
+    return;
+  }
+
+  if (event.key === "Escape") {
+    closeProductModal();
+  }
+
+  if (event.key === "ArrowLeft") {
+    setModalImage(modalState.currentIndex - 1);
+  }
+
+  if (event.key === "ArrowRight") {
+    setModalImage(modalState.currentIndex + 1);
+  }
+});
 
 loadProducts();

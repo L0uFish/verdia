@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Verdia | Luxe zijden bloemstukken</title>
   <meta name="description" content="Verdia maakt luxueuze, tijdloze zijden bloemstukken in Schilde, Sint-Job-in-'t-Goor en Zoersel." />
-  <link rel="stylesheet" href="styles.css?v=4.0" />
+  <link rel="stylesheet" href="styles.css?v=4.1" />
 </head>
 <body>
   <div id="demoBanner" class="demoBanner">
@@ -154,8 +154,34 @@
     <span>Luxe zijden bloemstukken</span>
   </footer>
 
+  <div id="productModal" class="productModal" hidden>
+    <div class="productModalDialog" role="dialog" aria-modal="true" aria-labelledby="productModalTitle">
+      <button type="button" id="productModalClose" class="productModalClose" aria-label="Sluit productdetails">×</button>
+
+      <div class="productModalMedia">
+        <div class="productModalImageBox">
+          <span id="productModalFeatured" class="featuredBadge modalFeaturedBadge" hidden>Uitgelicht</span>
+          <div id="productModalPlaceholder" class="cardPlaceholder productModalPlaceholder" hidden>
+            <span>Afbeelding volgt binnenkort</span>
+          </div>
+          <img id="productModalImage" class="productModalImage" alt="">
+          <button type="button" id="productModalPrev" class="arrow prev productModalArrow" aria-label="Vorige afbeelding">‹</button>
+          <button type="button" id="productModalNext" class="arrow next productModalArrow" aria-label="Volgende afbeelding">›</button>
+        </div>
+        <div id="productModalDots" class="dots productModalDots"></div>
+      </div>
+
+      <div class="productModalContent">
+        <span class="sectionTag">Collectie</span>
+        <h2 id="productModalTitle"></h2>
+        <div id="productModalPrice" class="price productModalPrice"></div>
+        <p id="productModalDescription" class="productModalDescription"></p>
+      </div>
+    </div>
+  </div>
+
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="supabase-config.js"></script>
-  <script type="module" src="app.js?v=4.0"></script>
+  <script type="module" src="app.js?v=4.1"></script>
 </body>
 </html>
