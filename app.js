@@ -9,22 +9,27 @@ const productModalClose = document.querySelector("#productModalClose");
 const productModalTitle = document.querySelector("#productModalTitle");
 const productModalPrice = document.querySelector("#productModalPrice");
 const productModalDescription = document.querySelector("#productModalDescription");
-const productModalFeatured = document.querySelector("#productModalFeatured");
 const productModalImage = document.querySelector("#productModalImage");
 const productModalPlaceholder = document.querySelector("#productModalPlaceholder");
 const productModalDots = document.querySelector("#productModalDots");
 const productModalPrevious = document.querySelector("#productModalPrev");
 const productModalNext = document.querySelector("#productModalNext");
+const contactForm = document.querySelector("#contactForm");
+const contactFormStatus = document.querySelector("#contactFormStatus");
+
+const CARD_SLIDE_INTERVAL = 3200;
+const CARD_SLIDE_TRANSITION_MS = 820;
 
 let cardObserver = null;
 let currentProducts = [];
-const CARD_SLIDE_INTERVAL = 1800;
 
 const modalState = {
   product: null,
   imageUrls: [],
   currentIndex: 0,
 };
+
+const preloadCache = new Map();
 
 function createElement(tagName, className, text) {
   const element = document.createElement(tagName);
@@ -40,13 +45,66 @@ function createElement(tagName, className, text) {
   return element;
 }
 
-function createSlideImage(source, alt, className) {
+function createSlideImage(source, alt, className = "") {
   const image = document.createElement("img");
   image.src = source;
   image.alt = alt;
   image.loading = "lazy";
+  image.decoding = "async";
   image.className = className;
   return image;
+}
+
+function preloadImage(source) {
+  if (!source) {
+    return Promise.resolve();
+  }
+
+  if (!preloadCache.has(source)) {
+    preloadCache.set(
+      source,
+      new Promise((resolve) => {
+        const image = new Image();
+        image.onload = () => resolve();
+        image.onerror = () => resolve();
+        image.src = source;
+
+        if (image.complete) {
+          resolve();
+        }
+      }),
+    );
+  }
+
+  return preloadCache.get(source);
+}
+
+function waitForTransition(element, duration) {
+  return new Promise((resolve) => {
+    let settled = false;
+
+    function finish() {
+      if (settled) {
+        return;
+      }
+
+      settled = true;
+      element.removeEventListener("transitionend", handleTransitionEnd);
+      window.clearTimeout(timeoutId);
+      resolve();
+    }
+
+    function handleTransitionEnd(event) {
+      if (event.target !== element || event.propertyName !== "opacity") {
+        return;
+      }
+
+      finish();
+    }
+
+    const timeoutId = window.setTimeout(finish, duration);
+    element.addEventListener("transitionend", handleTransitionEnd);
+  });
 }
 
 function setProductStatus(message, tone = "info") {
@@ -100,8 +158,8 @@ function renderModalImage() {
   }
 
   const currentImageUrl = modalState.imageUrls[modalState.currentIndex];
-  const hasMultipleImages = modalState.imageUrls.length > 1;
   const hasImages = modalState.imageUrls.length > 0;
+  const hasMultipleImages = modalState.imageUrls.length > 1;
 
   if (!hasImages || !currentImageUrl) {
     productModalImage.hidden = true;
@@ -154,7 +212,6 @@ function openProductModal(product) {
     !productModalTitle ||
     !productModalPrice ||
     !productModalDescription ||
-    !productModalFeatured ||
     !product
   ) {
     return;
@@ -167,7 +224,6 @@ function openProductModal(product) {
   productModalTitle.textContent = product.name;
   productModalPrice.textContent = formatPrice(product);
   productModalDescription.textContent = product.description || "Beschrijving volgt binnenkort.";
-  productModalFeatured.hidden = !product.featured;
 
   renderModalImage();
 
@@ -184,12 +240,16 @@ function createCard(product) {
   let currentIndex = 0;
   let autoTimer = null;
   let isVisible = false;
+  let isTransitioning = false;
+  let visibleLayer = 0;
+  let queuedIndex = null;
 
   const card = createElement("article", "card");
   card.dataset.productId = product.id;
   card.tabIndex = 0;
   card.setAttribute("role", "button");
   card.setAttribute("aria-label", `Bekijk details van ${product.name}`);
+  card.setAttribute("aria-haspopup", "dialog");
 
   const imageBox = createElement("div", "cardImage");
   const cardBody = createElement("div", "cardBody");
@@ -204,46 +264,20 @@ function createCard(product) {
   const priceRow = createElement("div", "cardPriceRow");
   const detailsButton = createElement("button", "cardMore", "Lees meer");
   const price = createElement("div", "price", formatPrice(product));
-  let activeImage = null;
+  let slideLayers = [];
 
   detailsButton.type = "button";
   detailsButton.setAttribute("aria-label", `Lees meer over ${product.name}`);
 
-  if (product.featured) {
-    imageBox.appendChild(createElement("span", "featuredBadge", "Uitgelicht"));
-  }
-
   if (imageUrls.length > 0) {
-    activeImage = createSlideImage(imageUrls[0], product.name, "activeImg");
-    imageBox.appendChild(activeImage);
+    const activeLayer = createSlideImage(imageUrls[0], product.name, "cardSlide is-current");
+    const standbyLayer = createSlideImage(imageUrls[0], product.name, "cardSlide");
+    slideLayers = [activeLayer, standbyLayer];
+    imageBox.append(activeLayer, standbyLayer);
   } else {
     const placeholder = createElement("div", "cardPlaceholder");
     placeholder.appendChild(createElement("span", "", "Afbeelding volgt binnenkort"));
     imageBox.appendChild(placeholder);
-  }
-
-  if (imageUrls.length > 1) {
-    const previousButton = createElement("button", "arrow prev", "‹");
-    const nextButton = createElement("button", "arrow next", "›");
-
-    previousButton.type = "button";
-    previousButton.setAttribute("aria-label", "Vorige afbeelding");
-    nextButton.type = "button";
-    nextButton.setAttribute("aria-label", "Volgende afbeelding");
-
-    imageBox.append(previousButton, nextButton);
-
-    previousButton.addEventListener("click", (event) => {
-      event.preventDefault();
-      event.stopPropagation();
-      changeImage(-1, true);
-    });
-
-    nextButton.addEventListener("click", (event) => {
-      event.preventDefault();
-      event.stopPropagation();
-      changeImage(1, true);
-    });
   }
 
   function renderDots() {
@@ -255,19 +289,68 @@ function createCard(product) {
     });
   }
 
-  function renderCurrentImage() {
-    if (!activeImage || !imageUrls.length) {
+  async function transitionToImage(nextIndex) {
+    if (imageUrls.length <= 1) {
       return;
     }
 
-    activeImage.src = imageUrls[currentIndex];
-    activeImage.alt = product.name;
+    const normalizedIndex = (nextIndex + imageUrls.length) % imageUrls.length;
+
+    if (normalizedIndex === currentIndex) {
+      return;
+    }
+
+    if (isTransitioning) {
+      queuedIndex = normalizedIndex;
+      return;
+    }
+
+    const outgoingLayer = slideLayers[visibleLayer];
+    const incomingLayer = slideLayers[1 - visibleLayer];
+    const nextUrl = imageUrls[normalizedIndex];
+
+    if (!outgoingLayer || !incomingLayer || !nextUrl) {
+      currentIndex = normalizedIndex;
+      renderDots();
+      return;
+    }
+
+    isTransitioning = true;
+    queuedIndex = null;
+
+    await preloadImage(nextUrl);
+
+    incomingLayer.src = nextUrl;
+    incomingLayer.alt = product.name;
+    incomingLayer.className = "cardSlide";
+
+    // Ensure the browser applies the reset state before starting the fade.
+    incomingLayer.getBoundingClientRect();
+
+    window.requestAnimationFrame(() => {
+      incomingLayer.classList.add("is-current");
+      outgoingLayer.classList.add("is-exit");
+      outgoingLayer.classList.remove("is-current");
+    });
+
+    await waitForTransition(incomingLayer, CARD_SLIDE_TRANSITION_MS);
+
+    outgoingLayer.className = "cardSlide";
+    currentIndex = normalizedIndex;
+    visibleLayer = 1 - visibleLayer;
     renderDots();
+    isTransitioning = false;
+
+    if (queuedIndex != null && queuedIndex !== currentIndex) {
+      const pendingIndex = queuedIndex;
+      queuedIndex = null;
+      transitionToImage(pendingIndex);
+    }
   }
 
   function stopAutoSlide() {
     if (autoTimer) {
-      clearInterval(autoTimer);
+      window.clearInterval(autoTimer);
       autoTimer = null;
     }
   }
@@ -278,28 +361,48 @@ function createCard(product) {
     }
 
     autoTimer = window.setInterval(() => {
-      changeImage(1, false);
+      transitionToImage(currentIndex + 1);
     }, CARD_SLIDE_INTERVAL);
   }
 
   function restartAutoSlide() {
     stopAutoSlide();
+
     if (isVisible) {
       startAutoSlide();
     }
   }
 
-  function changeImage(direction, shouldRestartTimer) {
-    if (imageUrls.length <= 1) {
-      return;
-    }
+  function handleArrowClick(direction) {
+    transitionToImage(currentIndex + direction);
+    restartAutoSlide();
+  }
 
-    currentIndex = (currentIndex + direction + imageUrls.length) % imageUrls.length;
-    renderCurrentImage();
+  if (imageUrls.length > 1) {
+    const previousButton = createElement("button", "arrow prev", "‹");
+    const nextButton = createElement("button", "arrow next", "›");
 
-    if (shouldRestartTimer) {
-      restartAutoSlide();
-    }
+    previousButton.type = "button";
+    previousButton.setAttribute("aria-label", `Vorige afbeelding van ${product.name}`);
+    nextButton.type = "button";
+    nextButton.setAttribute("aria-label", `Volgende afbeelding van ${product.name}`);
+
+    imageBox.append(previousButton, nextButton);
+
+    previousButton.addEventListener("click", (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      handleArrowClick(-1);
+    });
+
+    nextButton.addEventListener("click", (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      handleArrowClick(1);
+    });
+
+    renderDots();
+    footer.appendChild(dots);
   }
 
   card.startAutoSlide = () => {
@@ -322,11 +425,6 @@ function createCard(product) {
       openProductModal(product);
     }
   });
-
-  if (imageUrls.length > 1) {
-    renderDots();
-    footer.appendChild(dots);
-  }
 
   priceRow.append(detailsButton, price);
   footer.appendChild(priceRow);
@@ -378,7 +476,7 @@ function renderProducts(products) {
         }
       });
     },
-    { threshold: 0.2 },
+    { threshold: 0.25 },
   );
 
   productGrid.querySelectorAll(".card").forEach((card) => {
@@ -404,6 +502,14 @@ async function loadProducts() {
     productGrid.replaceChildren();
     setProductStatus(error.message || "De collectie kon niet geladen worden.", "error");
   }
+}
+
+if (contactForm && contactFormStatus) {
+  contactForm.addEventListener("submit", (event) => {
+    event.preventDefault();
+    contactFormStatus.textContent =
+      "Dank je. Dit demoformulier verstuurt nog niets, maar de aanvraagflow is klaar om gekoppeld te worden.";
+  });
 }
 
 if (closeDemoBanner && demoBanner) {

@@ -80,7 +80,6 @@ function normalizeProduct(row, images) {
     description: row.description || "",
     price: row.price == null ? null : Number(row.price),
     price_label: row.price_label === "op_aanvraag" ? "op_aanvraag" : "vanaf",
-    featured: Boolean(row.featured),
     sort_order: Number(row.sort_order || 0),
     created_at: row.created_at || "",
     images,
@@ -93,7 +92,7 @@ export async function fetchProductsWithImages() {
   const [productsResponse, imagesResponse] = await Promise.all([
     supabase
       .from("products")
-      .select("id, name, description, price, price_label, featured, sort_order, created_at")
+      .select("id, name, description, price, price_label, sort_order, created_at")
       .order("sort_order", { ascending: true })
       .order("created_at", { ascending: false }),
     supabase
@@ -134,7 +133,6 @@ function createProductPayload(values) {
     description: values.description,
     price: values.price == null || values.price === "" ? null : Number(values.price),
     price_label: values.price_label === "op_aanvraag" ? "op_aanvraag" : "vanaf",
-    featured: Boolean(values.featured),
     sort_order: Number.isFinite(Number(values.sort_order)) ? Number(values.sort_order) : 0,
   };
 }
@@ -148,7 +146,7 @@ export async function saveProduct(values) {
       .from("products")
       .update(payload)
       .eq("id", values.id)
-      .select("id, name, description, price, price_label, featured, sort_order, created_at")
+      .select("id, name, description, price, price_label, sort_order, created_at")
       .single();
 
     ensureSuccess(response.error, "Het product kon niet bijgewerkt worden.");
@@ -158,7 +156,7 @@ export async function saveProduct(values) {
   const response = await supabase
     .from("products")
     .insert(payload)
-    .select("id, name, description, price, price_label, featured, sort_order, created_at")
+    .select("id, name, description, price, price_label, sort_order, created_at")
     .single();
 
   ensureSuccess(response.error, "Het product kon niet aangemaakt worden.");

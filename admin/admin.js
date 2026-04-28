@@ -10,6 +10,8 @@ import {
 } from "../supabase.js";
 
 const MAX_IMAGES = 8;
+const PRODUCT_IMAGE_EXPORT_WIDTH = 1200;
+const PRODUCT_IMAGE_EXPORT_HEIGHT = 1000;
 
 const productList = document.querySelector("#productList");
 const listStatus = document.querySelector("#listStatus");
@@ -30,7 +32,6 @@ const descriptionInput = document.querySelector("#descriptionInput");
 const priceLabelInput = document.querySelector("#priceLabelInput");
 const priceInput = document.querySelector("#priceInput");
 const priceHint = document.querySelector("#priceHint");
-const featuredInput = document.querySelector("#featuredInput");
 const sortOrderInput = document.querySelector("#sortOrderInput");
 
 const cropModal = document.querySelector("#cropModal");
@@ -160,7 +161,6 @@ function resetForm() {
   descriptionInput.value = "";
   priceLabelInput.value = "vanaf";
   priceInput.value = "";
-  featuredInput.checked = false;
   sortOrderInput.value = "0";
   formTitle.textContent = "Nieuw product";
 
@@ -176,7 +176,6 @@ function applyProductToForm(product) {
   descriptionInput.value = product.description;
   priceLabelInput.value = product.price_label;
   priceInput.value = formatInputPrice(product.price);
-  featuredInput.checked = product.featured;
   sortOrderInput.value = String(product.sort_order != null ? product.sort_order : 0);
   state.images = mapImagesForEditor(product);
   formTitle.textContent = `Bewerk: ${product.name}`;
@@ -209,10 +208,6 @@ function renderProductList() {
     const title = createElement("div", "productRowTitle");
     const titleText = createElement("strong", "", product.name);
     title.appendChild(titleText);
-
-    if (product.featured) {
-      title.appendChild(createElement("span", "pill", "Uitgelicht"));
-    }
 
     const meta = createElement("div", "productMeta");
     meta.appendChild(createElement("span", "", formatPrice(product)));
@@ -296,7 +291,6 @@ function syncControls() {
   descriptionInput.disabled = state.isSaving;
   priceLabelInput.disabled = state.isSaving;
   priceInput.disabled = state.isSaving || priceOnRequest;
-  featuredInput.disabled = state.isSaving;
   sortOrderInput.disabled = state.isSaving;
   imageInput.disabled = state.isSaving || limitReached;
   newProductButton.disabled = state.isSaving;
@@ -367,7 +361,6 @@ function collectFormValues() {
     description: descriptionInput.value.trim(),
     price_label: priceLabel,
     price: priceLabel === "op_aanvraag" || rawPrice === "" ? null : Number(rawPrice),
-    featured: featuredInput.checked,
     sort_order: Number.isNaN(parsedSortOrder) ? null : parsedSortOrder,
   };
 }
@@ -581,17 +574,24 @@ async function handleDeleteProduct() {
   }
 }
 
+function getCropFrameSize() {
+  return {
+    width: cropViewport.clientWidth,
+    height: cropViewport.clientHeight,
+  };
+}
+
 function updateCropImageMetrics() {
   if (!cropImage.naturalWidth || !cropImage.naturalHeight) {
     return;
   }
 
-  const frameSize = cropViewport.clientWidth;
+  const { width: frameWidth, height: frameHeight } = getCropFrameSize();
   const previousCenterX = cropState.imageX + cropState.renderWidth / 2;
   const previousCenterY = cropState.imageY + cropState.renderHeight / 2;
   const hasPreviousLayout = cropState.renderWidth > 0 && cropState.renderHeight > 0;
 
-  cropState.baseScale = getFitScale(frameSize);
+  cropState.baseScale = getFitScale(frameWidth, frameHeight);
   cropState.renderWidth = cropImage.naturalWidth * cropState.baseScale * cropState.zoom;
   cropState.renderHeight = cropImage.naturalHeight * cropState.baseScale * cropState.zoom;
 
@@ -599,11 +599,11 @@ function updateCropImageMetrics() {
     cropState.imageX = previousCenterX - cropState.renderWidth / 2;
     cropState.imageY = previousCenterY - cropState.renderHeight / 2;
   } else {
-    cropState.imageX = (frameSize - cropState.renderWidth) / 2;
-    cropState.imageY = (frameSize - cropState.renderHeight) / 2;
+    cropState.imageX = (frameWidth - cropState.renderWidth) / 2;
+    cropState.imageY = (frameHeight - cropState.renderHeight) / 2;
   }
 
-  clampCropImagePosition(frameSize);
+  clampCropImagePosition(frameWidth, frameHeight);
   applyCropImageStyles();
 }
 
@@ -611,13 +611,13 @@ function getNormalizedRotation() {
   return ((cropState.rotation % 360) + 360) % 360;
 }
 
-function getFitScale(frameSize) {
+function getFitScale(frameWidth, frameHeight) {
   const normalizedRotation = getNormalizedRotation();
   const isQuarterTurn = normalizedRotation === 90 || normalizedRotation === 270;
   const rotatedWidth = isQuarterTurn ? cropImage.naturalHeight : cropImage.naturalWidth;
   const rotatedHeight = isQuarterTurn ? cropImage.naturalWidth : cropImage.naturalHeight;
 
-  return Math.min(frameSize / rotatedWidth, frameSize / rotatedHeight);
+  return Math.min(frameWidth / rotatedWidth, frameHeight / rotatedHeight);
 }
 
 function getCropBounds() {
@@ -630,21 +630,21 @@ function getCropBounds() {
   };
 }
 
-function clampCropImagePosition(frameSize) {
+function clampCropImagePosition(frameWidth, frameHeight) {
   const bounds = getCropBounds();
   let centerX = cropState.imageX + cropState.renderWidth / 2;
   let centerY = cropState.imageY + cropState.renderHeight / 2;
 
-  if (bounds.width <= frameSize) {
-    centerX = frameSize / 2;
+  if (bounds.width <= frameWidth) {
+    centerX = frameWidth / 2;
   } else {
-    centerX = clamp(centerX, frameSize - bounds.width / 2, bounds.width / 2);
+    centerX = clamp(centerX, frameWidth - bounds.width / 2, bounds.width / 2);
   }
 
-  if (bounds.height <= frameSize) {
-    centerY = frameSize / 2;
+  if (bounds.height <= frameHeight) {
+    centerY = frameHeight / 2;
   } else {
-    centerY = clamp(centerY, frameSize - bounds.height / 2, bounds.height / 2);
+    centerY = clamp(centerY, frameHeight - bounds.height / 2, bounds.height / 2);
   }
 
   cropState.imageX = centerX - cropState.renderWidth / 2;
@@ -716,14 +716,15 @@ async function confirmCropper() {
       throw new Error("De browser kon de afbeelding niet verwerken.");
     }
 
-    canvas.width = 1000;
-    canvas.height = 1000;
-    const frameSize = cropViewport.clientWidth;
-    const viewportToCanvasScale = canvas.width / frameSize;
-    const centerX = (cropState.imageX + cropState.renderWidth / 2) * viewportToCanvasScale;
-    const centerY = (cropState.imageY + cropState.renderHeight / 2) * viewportToCanvasScale;
-    const drawWidth = cropState.renderWidth * viewportToCanvasScale;
-    const drawHeight = cropState.renderHeight * viewportToCanvasScale;
+    canvas.width = PRODUCT_IMAGE_EXPORT_WIDTH;
+    canvas.height = PRODUCT_IMAGE_EXPORT_HEIGHT;
+    const { width: frameWidth, height: frameHeight } = getCropFrameSize();
+    const viewportToCanvasScaleX = canvas.width / frameWidth;
+    const viewportToCanvasScaleY = canvas.height / frameHeight;
+    const centerX = (cropState.imageX + cropState.renderWidth / 2) * viewportToCanvasScaleX;
+    const centerY = (cropState.imageY + cropState.renderHeight / 2) * viewportToCanvasScaleY;
+    const drawWidth = cropState.renderWidth * viewportToCanvasScaleX;
+    const drawHeight = cropState.renderHeight * viewportToCanvasScaleY;
 
     context.fillStyle = "#000";
     context.fillRect(0, 0, canvas.width, canvas.height);
@@ -974,7 +975,7 @@ cropViewport.addEventListener("pointermove", (event) => {
 
   cropState.imageX = cropState.startImageX + (event.clientX - cropState.dragStartX);
   cropState.imageY = cropState.startImageY + (event.clientY - cropState.dragStartY);
-  clampCropImagePosition(cropViewport.clientWidth);
+  clampCropImagePosition(cropViewport.clientWidth, cropViewport.clientHeight);
   applyCropImageStyles();
 });
 
@@ -982,12 +983,19 @@ function stopCropDrag(event) {
   if (cropState.isDragging) {
     cropState.isDragging = false;
     cropViewport.classList.remove("is-dragging");
-    cropViewport.releasePointerCapture(event.pointerId);
+    if (cropViewport.hasPointerCapture(event.pointerId)) {
+      cropViewport.releasePointerCapture(event.pointerId);
+    }
   }
 }
 
 cropViewport.addEventListener("pointerup", stopCropDrag);
 cropViewport.addEventListener("pointercancel", stopCropDrag);
+window.addEventListener("resize", () => {
+  if (!cropModal.hidden) {
+    updateCropImageMetrics();
+  }
+});
 
 resetForm();
 renderProductList();
