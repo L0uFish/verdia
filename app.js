@@ -40,12 +40,10 @@ const spotlightState = {
   currentY: 0,
   targetX: 0,
   targetY: 0,
-  ambientX: 0,
-  ambientY: 0,
-  currentOpacity: 0.24,
-  targetOpacity: 0.24,
+  currentOpacity: 0.11,
+  targetOpacity: 0.11,
   isCoarse: window.matchMedia ? window.matchMedia("(pointer: coarse)").matches : false,
-  pointerIsActive: false,
+  hasInteracted: false,
 };
 
 function createElement(tagName, className, text) {
@@ -125,9 +123,13 @@ function waitForTransition(element, duration) {
 }
 
 function setSpotlightVariables() {
-  document.documentElement.style.setProperty("--glow-x", `${spotlightState.currentX}px`);
-  document.documentElement.style.setProperty("--glow-y", `${spotlightState.currentY}px`);
-  document.documentElement.style.setProperty("--glow-opacity", spotlightState.currentOpacity.toFixed(3));
+  document.documentElement.style.setProperty("--spotlight-x", `${spotlightState.currentX}px`);
+  document.documentElement.style.setProperty("--spotlight-y", `${spotlightState.currentY}px`);
+  document.documentElement.style.setProperty("--spotlight-opacity", spotlightState.currentOpacity.toFixed(3));
+}
+
+function clampSpotlightValue(value, max) {
+  return Math.min(Math.max(value, 0), max);
 }
 
 function scheduleSpotlightFrame() {
@@ -139,9 +141,9 @@ function scheduleSpotlightFrame() {
 function animateSpotlight() {
   spotlightState.rafId = 0;
 
-  spotlightState.currentX += (spotlightState.targetX - spotlightState.currentX) * 0.12;
-  spotlightState.currentY += (spotlightState.targetY - spotlightState.currentY) * 0.12;
-  spotlightState.currentOpacity += (spotlightState.targetOpacity - spotlightState.currentOpacity) * 0.08;
+  spotlightState.currentX += (spotlightState.targetX - spotlightState.currentX) * 0.16;
+  spotlightState.currentY += (spotlightState.targetY - spotlightState.currentY) * 0.16;
+  spotlightState.currentOpacity += (spotlightState.targetOpacity - spotlightState.currentOpacity) * 0.12;
 
   setSpotlightVariables();
 
@@ -149,18 +151,15 @@ function animateSpotlight() {
   const yDelta = Math.abs(spotlightState.targetY - spotlightState.currentY);
   const opacityDelta = Math.abs(spotlightState.targetOpacity - spotlightState.currentOpacity);
 
-  if (xDelta > 0.6 || yDelta > 0.6 || opacityDelta > 0.004) {
+  if (xDelta > 0.35 || yDelta > 0.35 || opacityDelta > 0.002) {
     scheduleSpotlightFrame();
   }
 }
 
-function setAmbientSpotlight(shouldAnimate = true) {
-  spotlightState.ambientX = window.innerWidth * 0.5;
-  spotlightState.ambientY = spotlightState.isCoarse ? window.innerHeight * 0.24 : window.innerHeight * 0.18;
-  spotlightState.targetX = spotlightState.ambientX;
-  spotlightState.targetY = spotlightState.ambientY;
-  spotlightState.targetOpacity = spotlightState.isCoarse ? 0.24 : 0.2;
-  spotlightState.pointerIsActive = false;
+function setInitialSpotlight(shouldAnimate = true) {
+  spotlightState.targetX = window.innerWidth * 0.5;
+  spotlightState.targetY = window.innerHeight * (spotlightState.isCoarse ? 0.24 : 0.2);
+  spotlightState.targetOpacity = spotlightState.isCoarse ? 0.12 : 0.1;
 
   if (shouldAnimate) {
     scheduleSpotlightFrame();
@@ -173,53 +172,97 @@ function setAmbientSpotlight(shouldAnimate = true) {
 }
 
 function moveSpotlightTo(clientX, clientY, opacity) {
-  spotlightState.targetX = clientX;
-  spotlightState.targetY = clientY;
+  spotlightState.targetX = clampSpotlightValue(clientX, window.innerWidth);
+  spotlightState.targetY = clampSpotlightValue(clientY, window.innerHeight);
   spotlightState.targetOpacity = opacity;
-  spotlightState.pointerIsActive = true;
+  spotlightState.hasInteracted = true;
   scheduleSpotlightFrame();
+}
+
+function easeSpotlightAtCurrentPosition(opacity) {
+  spotlightState.targetOpacity = opacity;
+  scheduleSpotlightFrame();
+}
+
+function clampSpotlightPosition() {
+  spotlightState.targetX = clampSpotlightValue(spotlightState.targetX, window.innerWidth);
+  spotlightState.targetY = clampSpotlightValue(spotlightState.targetY, window.innerHeight);
+  spotlightState.currentX = clampSpotlightValue(spotlightState.currentX, window.innerWidth);
+  spotlightState.currentY = clampSpotlightValue(spotlightState.currentY, window.innerHeight);
 }
 
 function initializeSpotlight() {
   if (prefersReducedMotion) {
-    document.documentElement.style.setProperty("--glow-opacity", "0.16");
+    setInitialSpotlight(false);
     return;
   }
 
-  setAmbientSpotlight(false);
+  setInitialSpotlight(false);
+
+  function updateSpotlightFromPoint(clientX, clientY, pointerType = "mouse") {
+    moveSpotlightTo(clientX, clientY, pointerType === "mouse" ? 0.16 : 0.18);
+  }
 
   window.addEventListener("pointermove", (event) => {
-    if (event.pointerType === "mouse") {
-      moveSpotlightTo(event.clientX, event.clientY, 0.24);
+    if (!event.isPrimary) {
       return;
     }
 
-    if (event.isPrimary && spotlightState.isCoarse) {
-      moveSpotlightTo(event.clientX, event.clientY, 0.22);
-    }
+    updateSpotlightFromPoint(event.clientX, event.clientY, event.pointerType);
   });
 
   window.addEventListener("pointerdown", (event) => {
-    if (event.pointerType !== "mouse" && event.isPrimary) {
-      moveSpotlightTo(event.clientX, event.clientY, 0.22);
+    if (!event.isPrimary) {
+      return;
     }
+
+    updateSpotlightFromPoint(event.clientX, event.clientY, event.pointerType);
   });
 
-  function resetToAmbient() {
-    setAmbientSpotlight(true);
+  window.addEventListener("touchstart", (event) => {
+    const touch = event.touches[0];
+
+    if (touch) {
+      updateSpotlightFromPoint(touch.clientX, touch.clientY, "touch");
+    }
+  }, { passive: true });
+
+  window.addEventListener("touchmove", (event) => {
+    const touch = event.touches[0];
+
+    if (touch) {
+      updateSpotlightFromPoint(touch.clientX, touch.clientY, "touch");
+    }
+  }, { passive: true });
+
+  function releaseSpotlight() {
+    easeSpotlightAtCurrentPosition(spotlightState.isCoarse ? 0.13 : 0.11);
   }
 
-  window.addEventListener("pointerup", resetToAmbient);
-  window.addEventListener("pointercancel", resetToAmbient);
+  window.addEventListener("pointerup", (event) => {
+    if (event.isPrimary) {
+      releaseSpotlight();
+    }
+  });
+  window.addEventListener("pointercancel", releaseSpotlight);
+  window.addEventListener("touchend", releaseSpotlight, { passive: true });
+  window.addEventListener("touchcancel", releaseSpotlight, { passive: true });
   document.documentElement.addEventListener("mouseleave", () => {
     if (!spotlightState.isCoarse) {
-      resetToAmbient();
+      easeSpotlightAtCurrentPosition(0.1);
     }
   });
 
   window.addEventListener("resize", () => {
     spotlightState.isCoarse = window.matchMedia ? window.matchMedia("(pointer: coarse)").matches : false;
-    setAmbientSpotlight(!spotlightState.pointerIsActive);
+    clampSpotlightPosition();
+
+    if (!spotlightState.hasInteracted) {
+      setInitialSpotlight(false);
+      return;
+    }
+
+    setSpotlightVariables();
   });
 }
 

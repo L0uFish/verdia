@@ -12,9 +12,9 @@
   --shadow:0 24px 58px rgba(0,0,0,.26);
   --container:1060px;
   --container-wide:1140px;
-  --glow-x:50vw;
-  --glow-y:18vh;
-  --glow-opacity:.26;
+  --spotlight-x:50vw;
+  --spotlight-y:20vh;
+  --spotlight-opacity:.11;
 }
 
 *{box-sizing:border-box}
@@ -50,16 +50,16 @@ body::before{
 body::after{
   content:"";
   position:fixed;
-  inset:-12%;
+  inset:0;
   z-index:0;
   pointer-events:none;
-  opacity:var(--glow-opacity);
+  opacity:var(--spotlight-opacity);
   background:
-    radial-gradient(circle at var(--glow-x) var(--glow-y),rgba(238,196,116,.7) 0,rgba(190,134,57,.28) 14%,rgba(94,58,27,.12) 30%,transparent 54%),
-    radial-gradient(circle at 16% 12%,rgba(128,87,42,.18),transparent 28%),
-    radial-gradient(circle at 84% 14%,rgba(172,124,58,.15),transparent 30%);
-  filter:blur(22px);
+    radial-gradient(circle at var(--spotlight-x) var(--spotlight-y),rgba(248,229,187,.16) 0,rgba(248,229,187,.11) 26px,rgba(248,229,187,0) 52px),
+    radial-gradient(circle at var(--spotlight-x) var(--spotlight-y),rgba(214,177,93,.18) 0,rgba(214,177,93,.1) 55px,rgba(214,177,93,.045) 130px,transparent 260px);
+  filter:blur(10px);
   transform:translateZ(0);
+  will-change:background,opacity;
 }
 
 body > *{
@@ -1143,7 +1143,7 @@ footer{
 
 @media(max-width:760px){
   body::after{
-    filter:blur(18px);
+    filter:blur(8px);
   }
 
   .nav{
