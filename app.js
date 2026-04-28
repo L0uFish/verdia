@@ -30,6 +30,23 @@ const modalState = {
 };
 
 const preloadCache = new Map();
+const prefersReducedMotion = window.matchMedia
+  ? window.matchMedia("(prefers-reduced-motion: reduce)").matches
+  : false;
+
+const spotlightState = {
+  rafId: 0,
+  currentX: 0,
+  currentY: 0,
+  targetX: 0,
+  targetY: 0,
+  ambientX: 0,
+  ambientY: 0,
+  currentOpacity: 0.24,
+  targetOpacity: 0.24,
+  isCoarse: window.matchMedia ? window.matchMedia("(pointer: coarse)").matches : false,
+  pointerIsActive: false,
+};
 
 function createElement(tagName, className, text) {
   const element = document.createElement(tagName);
@@ -104,6 +121,105 @@ function waitForTransition(element, duration) {
 
     const timeoutId = window.setTimeout(finish, duration);
     element.addEventListener("transitionend", handleTransitionEnd);
+  });
+}
+
+function setSpotlightVariables() {
+  document.documentElement.style.setProperty("--glow-x", `${spotlightState.currentX}px`);
+  document.documentElement.style.setProperty("--glow-y", `${spotlightState.currentY}px`);
+  document.documentElement.style.setProperty("--glow-opacity", spotlightState.currentOpacity.toFixed(3));
+}
+
+function scheduleSpotlightFrame() {
+  if (!spotlightState.rafId) {
+    spotlightState.rafId = window.requestAnimationFrame(animateSpotlight);
+  }
+}
+
+function animateSpotlight() {
+  spotlightState.rafId = 0;
+
+  spotlightState.currentX += (spotlightState.targetX - spotlightState.currentX) * 0.12;
+  spotlightState.currentY += (spotlightState.targetY - spotlightState.currentY) * 0.12;
+  spotlightState.currentOpacity += (spotlightState.targetOpacity - spotlightState.currentOpacity) * 0.08;
+
+  setSpotlightVariables();
+
+  const xDelta = Math.abs(spotlightState.targetX - spotlightState.currentX);
+  const yDelta = Math.abs(spotlightState.targetY - spotlightState.currentY);
+  const opacityDelta = Math.abs(spotlightState.targetOpacity - spotlightState.currentOpacity);
+
+  if (xDelta > 0.6 || yDelta > 0.6 || opacityDelta > 0.004) {
+    scheduleSpotlightFrame();
+  }
+}
+
+function setAmbientSpotlight(shouldAnimate = true) {
+  spotlightState.ambientX = window.innerWidth * 0.5;
+  spotlightState.ambientY = spotlightState.isCoarse ? window.innerHeight * 0.24 : window.innerHeight * 0.18;
+  spotlightState.targetX = spotlightState.ambientX;
+  spotlightState.targetY = spotlightState.ambientY;
+  spotlightState.targetOpacity = spotlightState.isCoarse ? 0.24 : 0.2;
+  spotlightState.pointerIsActive = false;
+
+  if (shouldAnimate) {
+    scheduleSpotlightFrame();
+  } else {
+    spotlightState.currentX = spotlightState.targetX;
+    spotlightState.currentY = spotlightState.targetY;
+    spotlightState.currentOpacity = spotlightState.targetOpacity;
+    setSpotlightVariables();
+  }
+}
+
+function moveSpotlightTo(clientX, clientY, opacity) {
+  spotlightState.targetX = clientX;
+  spotlightState.targetY = clientY;
+  spotlightState.targetOpacity = opacity;
+  spotlightState.pointerIsActive = true;
+  scheduleSpotlightFrame();
+}
+
+function initializeSpotlight() {
+  if (prefersReducedMotion) {
+    document.documentElement.style.setProperty("--glow-opacity", "0.16");
+    return;
+  }
+
+  setAmbientSpotlight(false);
+
+  window.addEventListener("pointermove", (event) => {
+    if (event.pointerType === "mouse") {
+      moveSpotlightTo(event.clientX, event.clientY, 0.24);
+      return;
+    }
+
+    if (event.isPrimary && spotlightState.isCoarse) {
+      moveSpotlightTo(event.clientX, event.clientY, 0.22);
+    }
+  });
+
+  window.addEventListener("pointerdown", (event) => {
+    if (event.pointerType !== "mouse" && event.isPrimary) {
+      moveSpotlightTo(event.clientX, event.clientY, 0.22);
+    }
+  });
+
+  function resetToAmbient() {
+    setAmbientSpotlight(true);
+  }
+
+  window.addEventListener("pointerup", resetToAmbient);
+  window.addEventListener("pointercancel", resetToAmbient);
+  document.documentElement.addEventListener("mouseleave", () => {
+    if (!spotlightState.isCoarse) {
+      resetToAmbient();
+    }
+  });
+
+  window.addEventListener("resize", () => {
+    spotlightState.isCoarse = window.matchMedia ? window.matchMedia("(pointer: coarse)").matches : false;
+    setAmbientSpotlight(!spotlightState.pointerIsActive);
   });
 }
 
@@ -576,3 +692,4 @@ window.addEventListener("keydown", (event) => {
 });
 
 loadProducts();
+initializeSpotlight();
