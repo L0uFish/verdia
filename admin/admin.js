@@ -11,7 +11,7 @@ import {
 
 const MAX_IMAGES = 8;
 const PRODUCT_IMAGE_EXPORT_WIDTH = 1200;
-const PRODUCT_IMAGE_EXPORT_HEIGHT = 1000;
+const PRODUCT_IMAGE_EXPORT_HEIGHT = 1500;
 
 const productList = document.querySelector("#productList");
 const listStatus = document.querySelector("#listStatus");

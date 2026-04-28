@@ -450,7 +450,7 @@ p{
 
 .imageThumb{
   position:relative;
-  aspect-ratio:6 / 5;
+  aspect-ratio:4 / 5;
   background:var(--panel-strong);
 }
 
@@ -574,8 +574,8 @@ p{
 
 .cropViewport{
   position:relative;
-  width:min(100%,640px);
-  aspect-ratio:6 / 5;
+  width:min(100%,560px);
+  aspect-ratio:4 / 5;
   margin:0 auto;
   overflow:hidden;
   border-radius:28px;
