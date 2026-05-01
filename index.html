@@ -6,7 +6,7 @@
   <title>Verdia | Luxe zijden bloemstukken</title>
   <meta name="description" content="Verdia maakt luxueuze, tijdloze zijden bloemstukken in Schilde, Sint-Job-in-'t-Goor en Zoersel." />
   <link rel="icon" type="image/svg+xml" href='data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"%3E%3Crect width="64" height="64" rx="18" fill="%230f0c09"/%3E%3Cpath d="M18 16 30 48 46 16" fill="none" stroke="%23ead3a1" stroke-linecap="round" stroke-linejoin="round" stroke-width="6"/%3E%3C/svg%3E' />
-  <link rel="stylesheet" href="styles.css?v=5.5" />
+  <link rel="stylesheet" href="styles.css?v=5.6" />
 </head>
 <body>
   <div id="demoBanner" class="demoBanner">
@@ -36,6 +36,24 @@
         aria-expanded="false"
       >
         Inloggen
+      </button>
+      <button
+        type="button"
+        id="cartButton"
+        class="btn primary navCartButton"
+        aria-haspopup="dialog"
+        aria-controls="cartDrawer"
+        aria-expanded="false"
+      >
+        <span class="cartButtonIcon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" focusable="false">
+            <path d="M7 7h12l-1.4 7.2a2 2 0 0 1-2 1.6H10a2 2 0 0 1-2-1.6L6.6 4.8A1.8 1.8 0 0 0 4.8 3.4H3" />
+            <circle cx="10" cy="19" r="1.5" />
+            <circle cx="17" cy="19" r="1.5" />
+          </svg>
+        </span>
+        <span>Mandje</span>
+        <span id="cartCountBadge" class="cartCountBadge" hidden>0</span>
       </button>
     </div>
   </header>
@@ -120,6 +138,19 @@
 
       <p id="productStatus" class="catalogStatus">Collectie wordt geladen...</p>
       <div id="productGrid" class="grid"></div>
+    </section>
+
+    <section id="recent-verkocht" class="collection collectionRecent">
+      <div class="sectionHead">
+        <div>
+          <span class="sectionTag">Recent verkocht</span>
+          <h2>Recent verkocht</h2>
+        </div>
+        <p>Een kleine blik op stukken die recent hun plek vonden. Een subtiele indruk van de vraag naar unieke Verdia-creaties.</p>
+      </div>
+
+      <p id="recentSoldStatus" class="catalogStatus" hidden>Recente verkopen worden geladen...</p>
+      <div id="recentSoldGrid" class="grid soldGrid"></div>
     </section>
 
     <section id="maatwerk" class="atelier">
@@ -225,6 +256,8 @@
     <span>Luxe zijden bloemstukken</span>
   </footer>
 
+  <p id="storefrontLiveRegion" class="srOnly" aria-live="polite" aria-atomic="true"></p>
+
   <div id="productModal" class="productModal" hidden>
     <div class="productModalDialog" role="dialog" aria-modal="true" aria-labelledby="productModalTitle">
       <button type="button" id="productModalClose" class="productModalClose" aria-label="Sluit productdetails">×</button>
@@ -238,14 +271,188 @@
           <button type="button" id="productModalPrev" class="arrow prev productModalArrow" aria-label="Vorige afbeelding">‹</button>
           <button type="button" id="productModalNext" class="arrow next productModalArrow" aria-label="Volgende afbeelding">›</button>
         </div>
-        <div id="productModalDots" class="dots productModalDots"></div>
+        <div class="productModalGalleryFooter">
+          <p id="productModalGalleryMeta" class="productModalGalleryMeta"></p>
+          <div id="productModalDots" class="dots productModalDots"></div>
+        </div>
       </div>
 
       <div class="productModalContent">
-        <span class="sectionTag">Collectie</span>
+        <div class="productModalMetaRow">
+          <span class="sectionTag">Collectie</span>
+          <span class="productModalPickupPill">Afhaling op afspraak</span>
+        </div>
         <h2 id="productModalTitle"></h2>
+        <div class="productModalAvailabilityRow">
+          <span id="productModalAvailability" class="availabilityBadge"></span>
+        </div>
         <div id="productModalPrice" class="price productModalPrice"></div>
+        <p id="productModalAvailabilityNote" class="productModalAvailabilityNote"></p>
         <p id="productModalDescription" class="productModalDescription"></p>
+        <div class="productModalPickupNote">
+          <strong>Afhaling op afspraak</strong>
+          <p>Na betaling nemen we contact op om het afhaalmoment af te spreken.</p>
+        </div>
+        <p id="productModalActionFeedback" class="productModalActionFeedback" hidden></p>
+        <div class="productModalActions">
+          <button type="button" id="productModalPrimaryAction" class="btn primary">Toevoegen</button>
+          <button type="button" id="productModalSecondaryAction" class="btn ghost">Meer weten</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="cartDrawer" class="cartDrawer" hidden>
+    <div class="cartDrawerBackdrop" data-cart-close></div>
+    <aside class="cartDrawerPanel" role="dialog" aria-modal="true" aria-labelledby="cartDrawerTitle">
+      <div class="cartDrawerHeader">
+        <div>
+          <span class="sectionTag">Winkelmand</span>
+          <h2 id="cartDrawerTitle">Jouw selectie</h2>
+        </div>
+        <button type="button" id="cartDrawerClose" class="cartDrawerClose" aria-label="Sluit winkelmand">×</button>
+      </div>
+
+      <p id="cartStatus" class="cartStatus" role="status" hidden></p>
+
+      <div id="cartEmptyState" class="cartEmptyState">
+        <strong>Je mandje is nog leeg.</strong>
+        <p>Voeg een beschikbaar stuk toe om een afhaalbestelling te simuleren.</p>
+      </div>
+
+      <div id="cartContent" class="cartDrawerContent" hidden>
+        <div id="cartItems" class="cartItems"></div>
+
+        <div class="cartSummary">
+          <div class="cartSummaryRow">
+            <span>Subtotaal</span>
+            <strong id="cartSubtotal">€ 0</strong>
+          </div>
+          <p class="cartSummaryNote">Alle stukken zijn uniek, zonder verzending. Afhaling gebeurt uitsluitend op afspraak.</p>
+        </div>
+
+        <div class="cartDrawerActions">
+          <button type="button" id="cartCheckoutButton" class="btn primary">Afrekenen</button>
+        </div>
+      </div>
+    </aside>
+  </div>
+
+  <div id="checkoutModal" class="checkoutModal" hidden>
+    <div class="checkoutModalBackdrop" data-checkout-close></div>
+    <div class="checkoutModalDialog" role="dialog" aria-modal="true" aria-labelledby="checkoutTitle">
+      <button type="button" id="checkoutCloseButton" class="checkoutCloseButton" aria-label="Sluit checkout">×</button>
+
+      <div class="checkoutModalHeader">
+        <span class="sectionTag">Checkout</span>
+        <h2 id="checkoutTitle">Afrekenen</h2>
+        <p id="checkoutIntro" class="checkoutIntro">Vul je gegevens in voor een realistische demo van de betaal- en afhaalflow.</p>
+      </div>
+
+      <div class="checkoutLayout">
+        <section class="checkoutMain">
+          <p id="checkoutStatus" class="checkoutStatus" role="status" hidden></p>
+
+          <div id="checkoutFormStep" class="checkoutStep">
+            <form id="checkoutForm" class="formGrid checkoutForm" novalidate>
+              <label class="field">
+                <span>Naam</span>
+                <input id="checkoutNameInput" type="text" autocomplete="name" required />
+              </label>
+
+              <label class="field">
+                <span>E-mail</span>
+                <input id="checkoutEmailInput" type="email" autocomplete="email" required />
+              </label>
+
+              <label class="field">
+                <span>Telefoonnummer</span>
+                <input id="checkoutPhoneInput" type="tel" autocomplete="tel" required />
+              </label>
+
+              <label class="field fieldWide">
+                <span>Opmerking</span>
+                <textarea id="checkoutNoteInput" rows="5" placeholder="Eventuele voorkeur voor dag of tijdstip van afhalen."></textarea>
+              </label>
+
+              <div class="field fieldWide checkoutFormActions">
+                <button type="button" id="checkoutBackToCartButton" class="btn ghost">Terug naar mandje</button>
+                <button type="submit" id="checkoutContinueButton" class="btn primary">Verder naar betaling</button>
+              </div>
+            </form>
+          </div>
+
+          <div id="checkoutPaymentStep" class="checkoutStep" hidden>
+            <div class="paymentPanel">
+              <div class="paymentPanelHeader">
+                <div>
+                  <h3>Kies een betaalmethode</h3>
+                  <p>Demo-omgeving. Geen echte betaling, wel een realistische flow.</p>
+                </div>
+                <button type="button" id="checkoutBackToFormButton" class="btn ghost">Gegevens aanpassen</button>
+              </div>
+
+              <div id="checkoutPaymentMethods" class="paymentMethods" role="list"></div>
+
+              <p id="checkoutPaymentMethodHint" class="paymentMethodHint">Selecteer een methode en kies daarna een testuitkomst.</p>
+
+              <div id="checkoutPaymentProcessing" class="paymentProcessing" hidden>
+                <div class="paymentSpinner" aria-hidden="true"></div>
+                <div>
+                  <strong>Betaling wordt verwerkt...</strong>
+                  <p>We simuleren een premium betaalomgeving voor je demo-checkout.</p>
+                </div>
+              </div>
+
+              <div class="paymentOutcomePanel">
+                <span class="paymentOutcomeLabel">Testuitkomst</span>
+                <div class="paymentOutcomeButtons">
+                  <button type="button" class="paymentOutcomeButton success" data-payment-outcome="success">Betaling geslaagd</button>
+                  <button type="button" class="paymentOutcomeButton decline" data-payment-outcome="declined">Kaart geweigerd</button>
+                  <button type="button" class="paymentOutcomeButton cancel" data-payment-outcome="cancelled">Betaling geannuleerd</button>
+                  <button type="button" class="paymentOutcomeButton expired" data-payment-outcome="expired">Betaling verlopen</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div id="checkoutResultStep" class="checkoutStep" hidden>
+            <div class="checkoutResultCard">
+              <span id="checkoutResultBadge" class="checkoutResultBadge"></span>
+              <h3 id="checkoutResultHeading"></h3>
+              <p id="checkoutResultMessage" class="checkoutResultMessage"></p>
+              <div class="checkoutResultMeta">
+                <div>
+                  <span class="checkoutResultLabel">Ordernummer</span>
+                  <strong id="checkoutResultOrderNumber">-</strong>
+                </div>
+                <div>
+                  <span class="checkoutResultLabel">Contact</span>
+                  <strong id="checkoutResultCustomer">-</strong>
+                </div>
+              </div>
+              <div class="checkoutResultActions">
+                <button type="button" id="checkoutResultPrimaryButton" class="btn primary">Terug naar collectie</button>
+                <button type="button" id="checkoutResultSecondaryButton" class="btn ghost" hidden>Opnieuw proberen</button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <aside class="checkoutSummaryPanel">
+          <div class="checkoutSummaryHeader">
+            <span class="sectionTag">Bestelling</span>
+            <strong id="checkoutSummaryCount">0 items</strong>
+          </div>
+          <div id="checkoutSummaryItems" class="checkoutSummaryItems"></div>
+          <div class="checkoutSummaryFooter">
+            <div class="checkoutSummaryRow">
+              <span>Subtotaal</span>
+              <strong id="checkoutSummarySubtotal">€ 0</strong>
+            </div>
+            <p class="checkoutSummaryNote">Afhalen op afspraak, zonder verzendkosten of thuislevering.</p>
+          </div>
+        </aside>
       </div>
     </div>
   </div>
@@ -318,6 +525,6 @@
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="supabase-config.js"></script>
-  <script type="module" src="app.js?v=5.5"></script>
+  <script type="module" src="app.js?v=5.6"></script>
 </body>
 </html>

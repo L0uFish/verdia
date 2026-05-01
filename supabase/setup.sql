@@ -211,7 +211,7 @@ create policy "Visible products are public"
   on public.products
   for select
   to anon, authenticated
-  using (deleted_at is null and status in ('available', 'sold'));
+  using (deleted_at is null and status in ('available', 'reserved', 'sold'));
 
 create policy "Admins can read all products"
   on public.products
@@ -248,7 +248,7 @@ create policy "Visible product images are public"
       from public.products
       where products.id = product_images.product_id
         and products.deleted_at is null
-        and products.status in ('available', 'sold')
+        and products.status in ('available', 'reserved', 'sold')
     )
   );
 

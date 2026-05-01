@@ -27,6 +27,8 @@ const LEGACY_PRODUCT_SELECT_FIELDS = `
   created_at
 `;
 
+const PUBLIC_STOREFRONT_STATUSES = ["available", "reserved", "sold"];
+
 let cachedClient = null;
 
 function getConfig() {
@@ -201,7 +203,11 @@ function normalizeProduct(row, images) {
 
 async function runProductQuery(selectFields, options = {}) {
   const supabase = getSupabaseClient();
-  const { adminScope = false, includeLifecycleFilters = false } = options;
+  const {
+    adminScope = false,
+    includeLifecycleFilters = false,
+    publicStatuses = PUBLIC_STOREFRONT_STATUSES,
+  } = options;
   let query = supabase
     .from("products")
     .select(selectFields)
@@ -212,7 +218,7 @@ async function runProductQuery(selectFields, options = {}) {
     query = query.is("deleted_at", null);
 
     if (!adminScope) {
-      query = query.eq("status", "available");
+      query = query.in("status", publicStatuses);
     }
   }
 
@@ -220,10 +226,14 @@ async function runProductQuery(selectFields, options = {}) {
 }
 
 async function fetchProductRows(options = {}) {
-  const { adminScope = false } = options;
+  const {
+    adminScope = false,
+    publicStatuses = PUBLIC_STOREFRONT_STATUSES,
+  } = options;
   let response = await runProductQuery(PRODUCT_SELECT_FIELDS, {
     adminScope,
     includeLifecycleFilters: true,
+    publicStatuses,
   });
 
   if (response.error && isMissingProductLifecycleColumnError(response.error)) {
@@ -281,7 +291,10 @@ async function fetchProductsForScope(options = {}) {
 }
 
 export async function fetchProductsWithImages() {
-  return fetchProductsForScope({ adminScope: false });
+  return fetchProductsForScope({
+    adminScope: false,
+    publicStatuses: PUBLIC_STOREFRONT_STATUSES,
+  });
 }
 
 export async function fetchAdminProductsWithImages() {
