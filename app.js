@@ -61,6 +61,7 @@ const cartSubtotal = document.querySelector("#cartSubtotal");
 const cartCheckoutButton = document.querySelector("#cartCheckoutButton");
 const checkoutModal = document.querySelector("#checkoutModal");
 const checkoutCloseButton = document.querySelector("#checkoutCloseButton");
+const checkoutEyebrow = document.querySelector("#checkoutEyebrow");
 const checkoutTitle = document.querySelector("#checkoutTitle");
 const checkoutIntro = document.querySelector("#checkoutIntro");
 const checkoutStatus = document.querySelector("#checkoutStatus");
@@ -78,6 +79,8 @@ const checkoutBackToFormButton = document.querySelector("#checkoutBackToFormButt
 const checkoutPaymentMethods = document.querySelector("#checkoutPaymentMethods");
 const checkoutPaymentProcessing = document.querySelector("#checkoutPaymentProcessing");
 const checkoutPaymentMethodHint = document.querySelector("#checkoutPaymentMethodHint");
+const checkoutPaymentPickupNote = document.querySelector("#checkoutPaymentPickupNote");
+const checkoutPaymentSelectedMethod = document.querySelector("#checkoutPaymentSelectedMethod");
 const checkoutSummaryCount = document.querySelector("#checkoutSummaryCount");
 const checkoutSummaryItems = document.querySelector("#checkoutSummaryItems");
 const checkoutSummarySubtotal = document.querySelector("#checkoutSummarySubtotal");
@@ -240,6 +243,30 @@ function announceLiveMessage(message) {
   window.requestAnimationFrame(() => {
     storefrontLiveRegion.textContent = message;
   });
+}
+
+function getSignedInUserEmail() {
+  return publicAuthState.session?.user?.email || "";
+}
+
+function prefillContactEmailFromSession() {
+  if (!contactForm) {
+    return;
+  }
+
+  const emailField = contactForm.elements.namedItem("email");
+  const sessionEmail = getSignedInUserEmail();
+
+  if (
+    !sessionEmail
+    || !emailField
+    || typeof emailField.value !== "string"
+    || emailField.value.trim()
+  ) {
+    return;
+  }
+
+  emailField.value = sessionEmail;
 }
 
 function getPrimaryImageUrl(product) {
@@ -633,6 +660,7 @@ function applyPublicSession(session, statusMessage = "", statusTone = "info") {
     storefrontState.checkout.form.email = session.user.email;
   }
 
+  prefillContactEmailFromSession();
   renderAccountView();
   setAccountStatus(statusMessage, statusTone);
 
@@ -808,6 +836,27 @@ function isProductPurchasable(product) {
   return isAvailableProduct(product) && !isPriceOnRequest(product);
 }
 
+function syncStorefrontProductBuckets(products = currentProducts) {
+  storefrontState.collectionProducts = products.filter((product) => isCollectionProduct(product));
+  storefrontState.recentSoldProducts = sortRecentSoldProducts(
+    products.filter((product) => isSoldProduct(product)),
+  ).slice(0, 5);
+}
+
+function syncStorefrontSectionStatus() {
+  if (storefrontState.collectionProducts.length) {
+    setProductStatus("");
+  } else {
+    setProductStatus("Er staan momenteel nog geen stukken in de collectie.");
+  }
+
+  if (storefrontState.recentSoldProducts.length) {
+    setRecentSoldStatus("");
+  } else {
+    setRecentSoldStatus("Recent verkochte stukken verschijnen hier zodra ze gemarkeerd zijn als verkocht.");
+  }
+}
+
 function getProductById(productId) {
   return currentProducts.find((product) => product.id === productId) || null;
 }
@@ -842,6 +891,34 @@ function sortRecentSoldProducts(products) {
 
     return (right.sort_order || 0) - (left.sort_order || 0);
   });
+}
+
+function markProductsAsSoldLocally(items) {
+  const soldProductIds = new Set(items.map((item) => item?.id).filter(Boolean));
+
+  if (!soldProductIds.size) {
+    return;
+  }
+
+  const soldAt = new Date().toISOString();
+
+  currentProducts = currentProducts.map((product) => {
+    if (!soldProductIds.has(product.id)) {
+      return product;
+    }
+
+    return {
+      ...product,
+      status: "sold",
+      sold_at: product.sold_at || soldAt,
+    };
+  });
+
+  syncStorefrontProductBuckets(currentProducts);
+
+  if (modalState.product && soldProductIds.has(modalState.product.id)) {
+    modalState.product = getProductById(modalState.product.id);
+  }
 }
 
 function getProductAvailabilityMeta(product, options = {}) {
@@ -887,7 +964,7 @@ function getProductAvailabilityMeta(product, options = {}) {
     return {
       badgeLabel: "Beschikbaar",
       badgeTone: "available",
-      note: "Dit stuk zit al in je mandje en wacht op de demo-checkout.",
+      note: "Dit stuk zit al in je mandje en wacht op je demobestelling.",
       primaryLabel: "In mandje",
       primaryAction: "none",
       primaryDisabled: true,
@@ -1062,6 +1139,8 @@ function requestPriceForProduct(product, options = {}) {
   const messageField = contactForm.elements.namedItem("message");
   const requestTypeField = contactForm.elements.namedItem("requestType");
   const focusTarget = contactForm.elements.namedItem("name") || messageField;
+
+  prefillContactEmailFromSession();
 
   if (messageField && typeof messageField.value === "string") {
     messageField.value = `Ik ontvang graag meer informatie en de prijs voor "${product.name}".`;
@@ -1518,7 +1597,7 @@ function renderCheckoutSummary() {
     checkoutSummaryItems.appendChild(fragment);
   }
 
-  checkoutSummaryCount.textContent = `${items.length} ${items.length === 1 ? "item" : "items"}`;
+  checkoutSummaryCount.textContent = `${items.length} ${items.length === 1 ? "stuk" : "stukken"}`;
   checkoutSummarySubtotal.textContent = formatCurrencyAmount(getCartSubtotal(items));
 }
 
@@ -1553,11 +1632,12 @@ function renderCart() {
   storefrontState.cartItems.forEach((item) => {
     const row = createElement("div", "cartItem");
     const imageBox = createElement("div", "cartItemImage");
-    const meta = createElement("div", "cartItemMeta");
-    const top = createElement("div", "cartItemTop");
+    const body = createElement("div", "cartItemBody");
+    const summary = createElement("div", "cartItemSummary");
+    const footer = createElement("div", "cartItemFooter");
     const title = createElement("h3", "", item.name);
     const removeButton = createElement("button", "cartItemRemove", "Verwijder");
-    const price = createElement("div", "price", formatPrice(item));
+    const price = createElement("strong", "cartItemPrice", formatPrice(item));
     const note = createElement("p", "cartItemNote", "Uniek stuk · Afhaling op afspraak");
 
     removeButton.type = "button";
@@ -1573,9 +1653,10 @@ function renderCart() {
       imageBox.appendChild(placeholder);
     }
 
-    top.append(title, removeButton);
-    meta.append(top, price, note);
-    row.append(imageBox, meta);
+    summary.append(title, note);
+    footer.append(price, removeButton);
+    body.append(summary, footer);
+    row.append(imageBox, body);
     fragment.appendChild(row);
   });
 
@@ -1765,6 +1846,37 @@ function renderPaymentMethods() {
   checkoutPaymentMethods.appendChild(fragment);
 }
 
+function renderPaymentPickupNote() {
+  if (!checkoutPaymentPickupNote || !checkoutPaymentSelectedMethod) {
+    return;
+  }
+
+  const methodLabel = PAYMENT_METHOD_LABELS[storefrontState.checkout.paymentMethod];
+
+  if (storefrontState.checkout.step !== "payment" || !methodLabel) {
+    checkoutPaymentPickupNote.hidden = true;
+    checkoutPaymentSelectedMethod.textContent = "";
+    return;
+  }
+
+  checkoutPaymentPickupNote.hidden = false;
+  checkoutPaymentSelectedMethod.textContent = `Geselecteerde methode: ${methodLabel}`;
+}
+
+function setCheckoutHeaderCopy(eyebrow, title, intro) {
+  if (checkoutEyebrow) {
+    checkoutEyebrow.textContent = eyebrow;
+  }
+
+  if (checkoutTitle) {
+    checkoutTitle.textContent = title;
+  }
+
+  if (checkoutIntro) {
+    checkoutIntro.textContent = intro;
+  }
+}
+
 function renderCheckoutResult() {
   if (
     !checkoutResultBadge ||
@@ -1786,7 +1898,7 @@ function renderCheckoutResult() {
 
   let badgeClass = "is-warning";
   let badgeLabel = "Demo";
-  let heading = "Checkout bijgewerkt";
+  let heading = "Bestelling bijgewerkt";
   let message = "";
   let primaryLabel = "Terug naar collectie";
   let primaryAction = "close-collection";
@@ -1797,7 +1909,7 @@ function renderCheckoutResult() {
     badgeClass = "is-success";
     badgeLabel = "Betaald";
     heading = "Bedankt voor je bestelling";
-    message = "Je demo-betaling is geslaagd. Na betaling nemen we contact op om het afhaalmoment af te spreken.";
+    message = "Je demo-betaling is geslaagd. Na betaling nemen we contact op om het afhaalmoment af te spreken. Demo: deze bestelling werd niet echt verwerkt.";
     primaryLabel = "Terug naar collectie";
     primaryAction = "close-collection";
   } else if (outcome === "declined") {
@@ -1847,6 +1959,7 @@ function renderCheckoutStep() {
     !checkoutFormStep ||
     !checkoutPaymentStep ||
     !checkoutResultStep ||
+    !checkoutEyebrow ||
     !checkoutTitle ||
     !checkoutIntro
   ) {
@@ -1901,30 +2014,41 @@ function renderCheckoutStep() {
   }
 
   if (checkoutPaymentMethodHint) {
+    const methodLabel = PAYMENT_METHOD_LABELS[storefrontState.checkout.paymentMethod] || "betaalmethode";
     checkoutPaymentMethodHint.textContent = isProcessing
-      ? `We verwerken je ${PAYMENT_METHOD_LABELS[storefrontState.checkout.paymentMethod]}-betaling.`
-      : "Selecteer een methode en kies daarna een testuitkomst.";
+      ? `We verwerken je ${methodLabel}-betaling in deze demo.`
+      : `Je kiest voor ${methodLabel}. Selecteer hieronder de gewenste testuitkomst.`;
   }
 
+  renderPaymentPickupNote();
   renderCheckoutSummary();
 
   if (step === "form") {
-    checkoutTitle.textContent = "Afrekenen";
-    checkoutIntro.textContent = "Vul je gegevens in voor een realistische demo van de betaal- en afhaalflow.";
+    setCheckoutHeaderCopy(
+      "Bestelling",
+      "Afrekenen",
+      "Vul je gegevens in voor een realistische demo van de betaal- en afhaalflow.",
+    );
   } else if (step === "payment") {
-    checkoutTitle.textContent = "Betaling simuleren";
-    checkoutIntro.textContent = "Kies een betaalmethode en simuleer daarna de uitkomst van de betaling.";
+    setCheckoutHeaderCopy(
+      "Betaling",
+      "Betaling simuleren",
+      "Kies een betaalmethode en simuleer daarna de uitkomst van de betaling.",
+    );
     renderPaymentMethods();
   } else {
-    checkoutTitle.textContent = "Betalingsresultaat";
-    checkoutIntro.textContent = "De uitkomst hieronder is gesimuleerd en schrijft nog niets weg naar de database.";
+    setCheckoutHeaderCopy(
+      "Betaling",
+      "Betalingsresultaat",
+      "De uitkomst hieronder is gesimuleerd en schrijft nog niets weg naar de database.",
+    );
     renderCheckoutResult();
   }
 }
 
 function prepareCheckoutFromCart() {
   const previousForm = storefrontState.checkout.form || createEmptyCheckoutState().form;
-  const sessionEmail = publicAuthState.session?.user?.email || "";
+  const sessionEmail = getSignedInUserEmail();
 
   storefrontState.checkout = {
     ...createEmptyCheckoutState(),
@@ -2057,16 +2181,20 @@ function handleCheckoutSubmit(event) {
 }
 
 function completePaymentOutcome(outcome) {
+  const purchasedItems = getCheckoutItemsSnapshot().map((item) => ({ ...item }));
+
   storefrontState.checkout.isProcessing = false;
   storefrontState.checkout.result = outcome;
   storefrontState.checkout.step = "result";
 
   if (outcome === "success") {
+    markProductsAsSoldLocally(purchasedItems);
     storefrontState.cartItems = [];
     saveCartToStorage();
     renderStorefrontSections();
-    setCartStatus("Je mandje werd leeggemaakt na de geslaagde demo-betaling.", "success");
-    announceLiveMessage("Demo-betaling geslaagd. Je mandje werd leeggemaakt.");
+    syncStorefrontSectionStatus();
+    setCartStatus("Je selectie werd lokaal verwerkt en je mandje is leeggemaakt.", "success");
+    announceLiveMessage("Demo-betaling geslaagd. Je selectie staat nu lokaal als verkocht.");
   } else {
     renderCart();
   }
@@ -2140,30 +2268,16 @@ async function loadProducts() {
   try {
     const products = await fetchProductsWithImages();
     currentProducts = products.slice();
-    storefrontState.collectionProducts = products.filter((product) => isCollectionProduct(product));
-    storefrontState.recentSoldProducts = sortRecentSoldProducts(
-      products.filter((product) => isSoldProduct(product)),
-    ).slice(0, 5);
+    syncStorefrontProductBuckets(currentProducts);
 
     const removedItems = reconcileCartWithCatalog();
     renderStorefrontSections();
-
-    if (storefrontState.collectionProducts.length) {
-      setProductStatus("");
-    } else {
-      setProductStatus("Er staan momenteel nog geen beschikbare stukken online.");
-    }
-
-    if (storefrontState.recentSoldProducts.length) {
-      setRecentSoldStatus("");
-    } else {
-      setRecentSoldStatus("Recent verkochte stukken verschijnen hier zodra ze gemarkeerd zijn als verkocht.");
-    }
+    syncStorefrontSectionStatus();
 
     if (removedItems === 1) {
-      setCartStatus("Een item werd uit je mandje gehaald omdat het niet meer bestelbaar is.", "error");
+      setCartStatus("Een stuk werd uit je mandje gehaald omdat het niet meer bestelbaar is.", "error");
     } else if (removedItems > 1) {
-      setCartStatus(`${removedItems} items werden uit je mandje gehaald omdat ze niet meer bestelbaar zijn.`, "error");
+      setCartStatus(`${removedItems} stukken werden uit je mandje gehaald omdat ze niet meer bestelbaar zijn.`, "error");
     }
   } catch (error) {
     currentProducts = [];

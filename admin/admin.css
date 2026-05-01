@@ -342,6 +342,26 @@ p{
   letter-spacing:.12em;
 }
 
+.pill.is-available{
+  background:rgba(143,203,155,.16);
+  color:#d8efde;
+}
+
+.pill.is-reserved{
+  background:rgba(214,177,93,.16);
+  color:#f0ddbc;
+}
+
+.pill.is-sold{
+  background:rgba(127,160,212,.16);
+  color:#d8e3ff;
+}
+
+.pill.is-hidden{
+  background:rgba(255,255,255,.08);
+  color:rgba(255,255,255,.72);
+}
+
 .productMeta{
   display:flex;
   flex-wrap:wrap;

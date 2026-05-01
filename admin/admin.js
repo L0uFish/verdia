@@ -54,6 +54,7 @@ const descriptionInput = document.querySelector("#descriptionInput");
 const priceLabelInput = document.querySelector("#priceLabelInput");
 const priceInput = document.querySelector("#priceInput");
 const priceHint = document.querySelector("#priceHint");
+const statusInput = document.querySelector("#statusInput");
 const sortOrderInput = document.querySelector("#sortOrderInput");
 
 const cropModal = document.querySelector("#cropModal");
@@ -104,6 +105,13 @@ const cropState = {
   dragStartY: 0,
   startImageX: 0,
   startImageY: 0,
+};
+
+const PRODUCT_STATUS_LABELS = {
+  available: "Beschikbaar",
+  reserved: "Gereserveerd",
+  sold: "Verkocht",
+  hidden: "Verborgen",
 };
 
 function createElement(tagName, className, text) {
@@ -245,6 +253,32 @@ function formatInputPrice(value) {
   return String(value);
 }
 
+function normalizeProductStatus(status) {
+  return Object.prototype.hasOwnProperty.call(PRODUCT_STATUS_LABELS, status) ? status : "available";
+}
+
+function getProductStatusLabel(status) {
+  return PRODUCT_STATUS_LABELS[normalizeProductStatus(status)];
+}
+
+function formatSoldAtLabel(soldAt) {
+  if (!soldAt) {
+    return "";
+  }
+
+  const date = new Date(soldAt);
+
+  if (Number.isNaN(date.getTime())) {
+    return "";
+  }
+
+  return new Intl.DateTimeFormat("nl-NL", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  }).format(date);
+}
+
 function resetForm() {
   clearCurrentImages();
 
@@ -255,6 +289,7 @@ function resetForm() {
   descriptionInput.value = "";
   priceLabelInput.value = "vanaf";
   priceInput.value = "";
+  statusInput.value = "available";
   sortOrderInput.value = "0";
   formTitle.textContent = "Nieuw product";
 
@@ -270,6 +305,7 @@ function applyProductToForm(product) {
   descriptionInput.value = product.description;
   priceLabelInput.value = product.price_label;
   priceInput.value = formatInputPrice(product.price);
+  statusInput.value = normalizeProductStatus(product.status);
   sortOrderInput.value = String(product.sort_order != null ? product.sort_order : 0);
   state.images = mapImagesForEditor(product);
   formTitle.textContent = `Bewerk: ${product.name}`;
@@ -301,12 +337,24 @@ function renderProductList() {
 
     const title = createElement("div", "productRowTitle");
     const titleText = createElement("strong", "", product.name);
+    const statusBadge = createElement(
+      "span",
+      `pill is-${normalizeProductStatus(product.status)}`,
+      getProductStatusLabel(product.status),
+    );
     title.appendChild(titleText);
+    title.appendChild(statusBadge);
 
     const meta = createElement("div", "productMeta");
     meta.appendChild(createElement("span", "", formatPrice(product)));
     meta.appendChild(createElement("span", "", `${product.images.length} beeld(en)`));
     meta.appendChild(createElement("span", "", `Sortering ${product.sort_order}`));
+
+    const soldAtLabel = formatSoldAtLabel(product.sold_at);
+
+    if (soldAtLabel) {
+      meta.appendChild(createElement("span", "", `Verkocht op ${soldAtLabel}`));
+    }
 
     button.append(title, meta);
     fragment.appendChild(button);
@@ -386,6 +434,7 @@ function syncControls() {
   descriptionInput.disabled = isEditorLocked;
   priceLabelInput.disabled = isEditorLocked;
   priceInput.disabled = isEditorLocked || priceOnRequest;
+  statusInput.disabled = isEditorLocked;
   sortOrderInput.disabled = isEditorLocked;
   imageInput.disabled = isEditorLocked || limitReached;
   newProductButton.disabled = isEditorLocked;
@@ -449,6 +498,11 @@ function collectFormValues() {
   const rawPrice = priceInput.value.trim();
   const parsedSortOrder = Number.parseInt(sortOrderInput.value.trim() || "0", 10);
   const priceLabel = priceLabelInput.value === "op_aanvraag" ? "op_aanvraag" : "vanaf";
+  const status = normalizeProductStatus(statusInput.value);
+  const existingProduct = getSelectedProduct();
+  const soldAt = status === "sold"
+    ? (existingProduct?.sold_at || new Date().toISOString())
+    : (existingProduct?.sold_at || null);
 
   return {
     id: state.currentProductId,
@@ -456,6 +510,8 @@ function collectFormValues() {
     description: descriptionInput.value.trim(),
     price_label: priceLabel,
     price: priceLabel === "op_aanvraag" || rawPrice === "" ? null : Number(rawPrice),
+    status,
+    sold_at: soldAt,
     sort_order: Number.isNaN(parsedSortOrder) ? null : parsedSortOrder,
   };
 }
