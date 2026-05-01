@@ -5,7 +5,8 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Verdia Admin</title>
   <meta name="robots" content="noindex,nofollow" />
-  <link rel="stylesheet" href="/admin/admin.css?v=1.2" />
+  <link rel="icon" type="image/svg+xml" href='data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"%3E%3Crect width="64" height="64" rx="18" fill="%230f0c09"/%3E%3Cpath d="M18 16 30 48 46 16" fill="none" stroke="%23ead3a1" stroke-linecap="round" stroke-linejoin="round" stroke-width="6"/%3E%3C/svg%3E' />
+  <link rel="stylesheet" href="/admin/admin.css?v=1.3" />
 </head>
 <body class="adminPage">
   <div class="adminShell">
@@ -31,7 +32,20 @@
     </div>
 
     <main class="adminMain">
-      <section id="authView" class="authLayout">
+      <section id="authLoadingView" class="authLayout">
+        <div class="panel authPanel authStatePanel">
+          <div class="panelHeader authHeader">
+            <div>
+              <p class="eyebrow">Beveiliging</p>
+              <h2>Toegang controleren...</h2>
+            </div>
+          </div>
+
+          <p id="authLoadingMessage" class="authStateMessage" role="status">Toegang controleren...</p>
+        </div>
+      </section>
+
+      <section id="authView" class="authLayout" hidden>
         <div class="panel authPanel">
           <div class="panelHeader authHeader">
             <div>
@@ -58,6 +72,23 @@
               <button type="submit" id="loginButton" class="btn primary">Inloggen</button>
             </div>
           </form>
+        </div>
+      </section>
+
+      <section id="accessDeniedView" class="authLayout" hidden>
+        <div class="panel authPanel authStatePanel">
+          <div class="panelHeader authHeader">
+            <div>
+              <p class="eyebrow">Geen toegang</p>
+              <h2>Beheer geblokkeerd</h2>
+            </div>
+          </div>
+
+          <p id="accessDeniedMessage" class="authStateMessage">Je hebt geen toegang tot dit beheer.</p>
+
+          <div class="authActions">
+            <button type="button" id="accessDeniedLogoutButton" class="btn primary">Uitloggen</button>
+          </div>
         </div>
       </section>
 
@@ -187,6 +218,6 @@
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="../supabase-config.js"></script>
-  <script type="module" src="/admin/admin.js?v=1.2"></script>
+  <script type="module" src="/admin/admin.js?v=1.3"></script>
 </body>
 </html>

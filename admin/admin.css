@@ -14,6 +14,10 @@
 
 *{box-sizing:border-box}
 
+[hidden]{
+  display:none !important;
+}
+
 html,body{min-height:100%}
 
 body{
@@ -118,6 +122,11 @@ p{
   padding:24px;
 }
 
+.authStatePanel{
+  display:grid;
+  gap:18px;
+}
+
 .authHeader{
   margin-bottom:18px;
 }
@@ -136,6 +145,13 @@ p{
   align-items:center;
   justify-content:flex-start;
   gap:12px;
+}
+
+.authStateMessage{
+  margin:0;
+  color:var(--cream);
+  font-size:1.02rem;
+  line-height:1.75;
 }
 
 .sessionMeta{

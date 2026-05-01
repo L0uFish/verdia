@@ -1,4 +1,12 @@
-import { fetchProductsWithImages, formatPrice } from "./supabase.js?v=2.0";
+import {
+  fetchProductsWithImages,
+  formatPrice,
+  getCurrentSession,
+  onAuthStateChange,
+  signInWithEmailPassword,
+  signOutCurrentUser,
+  signUpWithEmailPassword,
+} from "./supabase.js?v=2.1";
 
 const productGrid = document.querySelector("#productGrid");
 const productStatus = document.querySelector("#productStatus");
@@ -16,6 +24,23 @@ const productModalPrevious = document.querySelector("#productModalPrev");
 const productModalNext = document.querySelector("#productModalNext");
 const contactForm = document.querySelector("#contactForm");
 const contactFormStatus = document.querySelector("#contactFormStatus");
+const accountButton = document.querySelector("#accountButton");
+const accountModal = document.querySelector("#accountModal");
+const accountModalClose = document.querySelector("#accountModalClose");
+const accountModalTitle = document.querySelector("#accountModalTitle");
+const accountModalIntro = document.querySelector("#accountModalIntro");
+const accountModalStatus = document.querySelector("#accountModalStatus");
+const accountLoggedOutView = document.querySelector("#accountLoggedOutView");
+const accountLoggedInView = document.querySelector("#accountLoggedInView");
+const accountAuthForm = document.querySelector("#accountAuthForm");
+const accountEmailInput = document.querySelector("#accountEmailInput");
+const accountPasswordInput = document.querySelector("#accountPasswordInput");
+const accountSubmitButton = document.querySelector("#accountSubmitButton");
+const accountModeHint = document.querySelector("#accountModeHint");
+const accountModeLoginButton = document.querySelector("#accountModeLoginButton");
+const accountModeRegisterButton = document.querySelector("#accountModeRegisterButton");
+const accountEmailValue = document.querySelector("#accountEmailValue");
+const accountLogoutButton = document.querySelector("#accountLogoutButton");
 
 const CARD_SLIDE_INTERVAL = 3200;
 const CARD_SLIDE_TRANSITION_MS = 820;
@@ -27,6 +52,13 @@ const modalState = {
   product: null,
   imageUrls: [],
   currentIndex: 0,
+};
+
+const publicAuthState = {
+  session: null,
+  mode: "login",
+  isSubmitting: false,
+  lastFocusedElement: null,
 };
 
 const preloadCache = new Map();
@@ -283,6 +315,259 @@ function setProductStatus(message, tone = "info") {
   productStatus.classList.toggle("is-error", tone === "error");
 }
 
+function syncBodyModalState() {
+  const hasOpenProductModal = productModal && !productModal.hidden;
+  const hasOpenAccountModal = accountModal && !accountModal.hidden;
+  document.body.classList.toggle("modalOpen", Boolean(hasOpenProductModal || hasOpenAccountModal));
+}
+
+function setAccountStatus(message, tone = "info") {
+  if (!accountModalStatus) {
+    return;
+  }
+
+  if (!message) {
+    accountModalStatus.hidden = true;
+    accountModalStatus.textContent = "";
+    accountModalStatus.removeAttribute("data-tone");
+    return;
+  }
+
+  accountModalStatus.hidden = false;
+  accountModalStatus.textContent = message;
+  accountModalStatus.dataset.tone = tone;
+}
+
+function setAccountMode(mode) {
+  publicAuthState.mode = mode === "register" ? "register" : "login";
+
+  if (!accountModeLoginButton || !accountModeRegisterButton || !accountSubmitButton || !accountModeHint) {
+    return;
+  }
+
+  const isRegisterMode = publicAuthState.mode === "register";
+
+  accountModeLoginButton.classList.toggle("is-active", !isRegisterMode);
+  accountModeRegisterButton.classList.toggle("is-active", isRegisterMode);
+  accountModeLoginButton.setAttribute("aria-pressed", String(!isRegisterMode));
+  accountModeRegisterButton.setAttribute("aria-pressed", String(isRegisterMode));
+  accountSubmitButton.textContent = publicAuthState.isSubmitting
+    ? (isRegisterMode ? "Account aanmaken..." : "Inloggen...")
+    : (isRegisterMode ? "Account aanmaken" : "Inloggen");
+  accountPasswordInput.autocomplete = isRegisterMode ? "new-password" : "current-password";
+
+  if (!publicAuthState.session?.user) {
+    accountModalTitle.textContent = isRegisterMode ? "Account aanmaken" : "Inloggen";
+    accountModalIntro.textContent = isRegisterMode
+      ? "Maak vrijblijvend een account aan. Bestellingen verschijnen hier later."
+      : "Log in of maak een account aan. Bestellingen verschijnen hier later.";
+    accountModeHint.textContent = isRegisterMode
+      ? "Afrekenen blijft later ook zonder account mogelijk."
+      : "Gebruik je e-mailadres en wachtwoord. Afrekenen blijft later ook zonder account mogelijk.";
+  }
+}
+
+function syncAccountControls() {
+  const isBusy = publicAuthState.isSubmitting;
+  const isLoggedIn = Boolean(publicAuthState.session?.user);
+
+  if (accountButton) {
+    accountButton.textContent = isLoggedIn ? "Mijn account" : "Inloggen";
+    accountButton.setAttribute("aria-expanded", String(accountModal && !accountModal.hidden));
+  }
+
+  if (!accountAuthForm) {
+    return;
+  }
+
+  accountEmailInput.disabled = isBusy || isLoggedIn;
+  accountPasswordInput.disabled = isBusy || isLoggedIn;
+  accountSubmitButton.disabled = isBusy || isLoggedIn;
+  accountModeLoginButton.disabled = isBusy || isLoggedIn;
+  accountModeRegisterButton.disabled = isBusy || isLoggedIn;
+  accountLogoutButton.disabled = isBusy || !isLoggedIn;
+  accountModalClose.disabled = false;
+
+  setAccountMode(publicAuthState.mode);
+}
+
+function renderAccountView() {
+  if (!accountLoggedOutView || !accountLoggedInView || !accountEmailValue) {
+    return;
+  }
+
+  const session = publicAuthState.session;
+  const isLoggedIn = Boolean(session?.user);
+
+  accountLoggedOutView.hidden = isLoggedIn;
+  accountLoggedInView.hidden = !isLoggedIn;
+
+  if (isLoggedIn) {
+    accountModalTitle.textContent = "Mijn account";
+    accountModalIntro.textContent = "Bestellingen verschijnen hier later.";
+    accountEmailValue.textContent = session.user.email || "";
+  } else {
+    accountEmailValue.textContent = "";
+    setAccountMode(publicAuthState.mode);
+  }
+
+  syncAccountControls();
+}
+
+function focusAccountModalTarget() {
+  if (!accountModal || accountModal.hidden) {
+    return;
+  }
+
+  if (publicAuthState.session?.user) {
+    accountLogoutButton.focus();
+    return;
+  }
+
+  accountEmailInput.focus();
+}
+
+function openAccountModal() {
+  if (!accountModal || !accountButton) {
+    return;
+  }
+
+  if (!accountModal.hidden) {
+    return;
+  }
+
+  publicAuthState.lastFocusedElement = document.activeElement instanceof HTMLElement
+    ? document.activeElement
+    : null;
+
+  renderAccountView();
+  accountModal.hidden = false;
+  accountButton.setAttribute("aria-expanded", "true");
+  syncBodyModalState();
+  window.requestAnimationFrame(focusAccountModalTarget);
+}
+
+function closeAccountModal({ restoreFocus = true } = {}) {
+  if (!accountModal || accountModal.hidden) {
+    return;
+  }
+
+  accountModal.hidden = true;
+  if (accountButton) {
+    accountButton.setAttribute("aria-expanded", "false");
+  }
+  syncBodyModalState();
+
+  if (restoreFocus && publicAuthState.lastFocusedElement && typeof publicAuthState.lastFocusedElement.focus === "function") {
+    publicAuthState.lastFocusedElement.focus();
+  }
+
+  publicAuthState.lastFocusedElement = null;
+}
+
+function applyPublicSession(session, statusMessage = "", statusTone = "info") {
+  publicAuthState.session = session || null;
+  renderAccountView();
+  setAccountStatus(statusMessage, statusTone);
+
+  if (!accountModal.hidden) {
+    window.requestAnimationFrame(focusAccountModalTarget);
+  }
+}
+
+async function handleAccountAuthSubmit(event) {
+  event.preventDefault();
+
+  if (publicAuthState.isSubmitting) {
+    return;
+  }
+
+  const email = accountEmailInput.value.trim();
+  const password = accountPasswordInput.value;
+
+  if (!email) {
+    setAccountStatus("Vul je e-mailadres in.", "error");
+    accountEmailInput.focus();
+    return;
+  }
+
+  if (!password) {
+    setAccountStatus("Vul je wachtwoord in.", "error");
+    accountPasswordInput.focus();
+    return;
+  }
+
+  publicAuthState.isSubmitting = true;
+  setAccountStatus(
+    publicAuthState.mode === "register" ? "Account wordt aangemaakt..." : "Inloggen...",
+    "info",
+  );
+  syncAccountControls();
+
+  try {
+    if (publicAuthState.mode === "register") {
+      const result = await signUpWithEmailPassword(email, password);
+
+      if (result.session) {
+        applyPublicSession(result.session, "Je account is aangemaakt en je bent aangemeld.", "success");
+      } else {
+        setAccountMode("login");
+        accountPasswordInput.value = "";
+        setAccountStatus(
+          "Je account is aangemaakt. Controleer je e-mail om je account te bevestigen.",
+          "success",
+        );
+      }
+    } else {
+      const session = await signInWithEmailPassword(email, password);
+      applyPublicSession(session, "", "info");
+      accountPasswordInput.value = "";
+    }
+  } catch (error) {
+    setAccountStatus(error.message || "Aanmelden mislukte.", "error");
+  } finally {
+    publicAuthState.isSubmitting = false;
+    syncAccountControls();
+  }
+}
+
+async function handleAccountLogout() {
+  if (publicAuthState.isSubmitting) {
+    return;
+  }
+
+  publicAuthState.isSubmitting = true;
+  setAccountStatus("Uitloggen...", "info");
+  syncAccountControls();
+
+  try {
+    await signOutCurrentUser();
+    applyPublicSession(null, "Je bent uitgelogd.", "info");
+    accountPasswordInput.value = "";
+  } catch (error) {
+    setAccountStatus(error.message || "Uitloggen mislukte.", "error");
+  } finally {
+    publicAuthState.isSubmitting = false;
+    syncAccountControls();
+  }
+}
+
+async function initializePublicAuth() {
+  renderAccountView();
+
+  onAuthStateChange((session) => {
+    applyPublicSession(session, "", "info");
+  });
+
+  try {
+    const session = await getCurrentSession();
+    applyPublicSession(session, "", "info");
+  } catch (error) {
+    console.error(error);
+    applyPublicSession(null, "", "info");
+  }
+}
+
 function getProductImageUrls(product) {
   if (!product || !Array.isArray(product.images)) {
     return [];
@@ -359,10 +644,10 @@ function closeProductModal() {
   }
 
   productModal.hidden = true;
-  document.body.classList.remove("modalOpen");
   modalState.product = null;
   modalState.imageUrls = [];
   modalState.currentIndex = 0;
+  syncBodyModalState();
 }
 
 function openProductModal(product) {
@@ -387,7 +672,7 @@ function openProductModal(product) {
   renderModalImage();
 
   productModal.hidden = false;
-  document.body.classList.add("modalOpen");
+  syncBodyModalState();
 
   if (productModalClose) {
     productModalClose.focus();
@@ -671,6 +956,46 @@ if (contactForm && contactFormStatus) {
   });
 }
 
+if (accountButton) {
+  accountButton.addEventListener("click", openAccountModal);
+}
+
+if (accountModalClose && accountModal) {
+  accountModalClose.addEventListener("click", () => {
+    closeAccountModal();
+  });
+
+  accountModal.addEventListener("click", (event) => {
+    if (event.target === accountModal) {
+      closeAccountModal();
+    }
+  });
+}
+
+if (accountAuthForm) {
+  accountAuthForm.addEventListener("submit", handleAccountAuthSubmit);
+}
+
+if (accountModeLoginButton) {
+  accountModeLoginButton.addEventListener("click", () => {
+    setAccountMode("login");
+    setAccountStatus("", "info");
+    syncAccountControls();
+  });
+}
+
+if (accountModeRegisterButton) {
+  accountModeRegisterButton.addEventListener("click", () => {
+    setAccountMode("register");
+    setAccountStatus("", "info");
+    syncAccountControls();
+  });
+}
+
+if (accountLogoutButton) {
+  accountLogoutButton.addEventListener("click", handleAccountLogout);
+}
+
 if (closeDemoBanner && demoBanner) {
   closeDemoBanner.addEventListener("click", () => {
     demoBanner.classList.add("hidden");
@@ -717,6 +1042,11 @@ if (productModalNext) {
 }
 
 window.addEventListener("keydown", (event) => {
+  if (accountModal && !accountModal.hidden && event.key === "Escape") {
+    closeAccountModal();
+    return;
+  }
+
   if (!productModal || productModal.hidden) {
     return;
   }
@@ -735,4 +1065,5 @@ window.addEventListener("keydown", (event) => {
 });
 
 loadProducts();
+initializePublicAuth();
 initializeSpotlight();

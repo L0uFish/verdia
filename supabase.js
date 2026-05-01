@@ -83,6 +83,28 @@ function mapAdminCheckError(error, fallbackMessage) {
   return error?.message ? error.message : fallbackMessage;
 }
 
+function mapRegistrationErrorMessage(error, fallbackMessage) {
+  const message = String(error?.message || "").toLowerCase();
+
+  if (message.includes("user already registered")) {
+    return "Voor dit e-mailadres bestaat al een account. Log in met je wachtwoord.";
+  }
+
+  if (message.includes("password should be at least")) {
+    return "Gebruik een wachtwoord van minstens 6 tekens.";
+  }
+
+  if (message.includes("unable to validate email address") || message.includes("invalid email")) {
+    return "Vul een geldig e-mailadres in.";
+  }
+
+  if (message.includes("failed to fetch") || message.includes("network")) {
+    return "Supabase kon niet bereikt worden. Controleer je verbinding en probeer opnieuw.";
+  }
+
+  return error?.message ? error.message : fallbackMessage;
+}
+
 export function getSupabaseErrorMessage() {
   if (!window.supabase || typeof window.supabase.createClient !== "function") {
     return "Supabase JS kon niet geladen worden.";
@@ -425,7 +447,7 @@ export async function getCurrentSession() {
   return response.data.session || null;
 }
 
-export async function signInAdmin(email, password) {
+export async function signInWithEmailPassword(email, password) {
   const supabase = getSupabaseClient();
   const response = await supabase.auth.signInWithPassword({
     email,
@@ -439,11 +461,36 @@ export async function signInAdmin(email, password) {
   return response.data.session || null;
 }
 
-export async function signOutAdmin() {
+export async function signUpWithEmailPassword(email, password) {
+  const supabase = getSupabaseClient();
+  const response = await supabase.auth.signUp({
+    email,
+    password,
+  });
+
+  if (response.error) {
+    throw new Error(mapRegistrationErrorMessage(response.error, "Registreren mislukte."));
+  }
+
+  return {
+    session: response.data.session || null,
+    user: response.data.user || null,
+  };
+}
+
+export async function signOutCurrentUser() {
   const supabase = getSupabaseClient();
   const response = await supabase.auth.signOut();
 
   ensureSuccess(response.error, "Uitloggen mislukte.");
+}
+
+export async function signInAdmin(email, password) {
+  return signInWithEmailPassword(email, password);
+}
+
+export async function signOutAdmin() {
+  return signOutCurrentUser();
 }
 
 export async function isCurrentUserAdmin() {

@@ -12,13 +12,18 @@ import {
   signInAdmin,
   signOutAdmin,
   uploadProductImage,
-} from "../supabase.js?v=2.0";
+} from "../supabase.js?v=2.1";
 
 const MAX_IMAGES = 8;
 const PRODUCT_IMAGE_EXPORT_WIDTH = 1200;
 const PRODUCT_IMAGE_EXPORT_HEIGHT = 1500;
 
+const authLoadingView = document.querySelector("#authLoadingView");
+const authLoadingMessage = document.querySelector("#authLoadingMessage");
 const authView = document.querySelector("#authView");
+const accessDeniedView = document.querySelector("#accessDeniedView");
+const accessDeniedMessage = document.querySelector("#accessDeniedMessage");
+const accessDeniedLogoutButton = document.querySelector("#accessDeniedLogoutButton");
 const adminApp = document.querySelector("#adminApp");
 const securityNotice = document.querySelector("#securityNotice");
 const loginForm = document.querySelector("#loginForm");
@@ -77,6 +82,7 @@ const authState = {
   checkingSessionToken: "",
   isSubmitting: false,
   isAdmin: false,
+  hasSession: false,
   activeSessionToken: "",
   pendingLoggedOutMessage: "",
   pendingLoggedOutTone: "info",
@@ -154,12 +160,22 @@ function setAuthFeedback(message, tone = "info") {
   authFeedback.dataset.tone = tone;
 }
 
-function setAdminVisibility(isVisible) {
-  authView.hidden = isVisible;
-  adminApp.hidden = !isVisible;
-  securityNotice.hidden = !isVisible;
-  logoutButton.hidden = !isVisible;
-  sessionMeta.hidden = !isVisible;
+function setAuthLoadingMessage(message) {
+  authLoadingMessage.textContent = message;
+}
+
+function setAccessDeniedMessage(message) {
+  accessDeniedMessage.textContent = message;
+}
+
+function setAdminView(view) {
+  authLoadingView.hidden = view !== "loading";
+  authView.hidden = view !== "login";
+  accessDeniedView.hidden = view !== "denied";
+  adminApp.hidden = view !== "admin";
+  securityNotice.hidden = view !== "admin";
+  logoutButton.hidden = view !== "admin";
+  sessionMeta.hidden = view !== "admin";
 }
 
 function syncAuthControls() {
@@ -170,6 +186,7 @@ function syncAuthControls() {
   loginButton.disabled = isBusy;
   loginButton.textContent = authState.isSubmitting ? "Inloggen..." : "Inloggen";
   logoutButton.disabled = authState.isSubmitting || authState.isChecking;
+  accessDeniedLogoutButton.disabled = authState.isSubmitting || authState.isChecking;
 }
 
 function clearAdminState() {
@@ -514,9 +531,16 @@ async function ensureProductsLoaded(preferredProductId) {
   await loadProducts(preferredProductId);
 }
 
+function showLoadingState(message = "Toegang controleren...") {
+  setAuthLoadingMessage(message);
+  setAdminView("loading");
+  syncAuthControls();
+}
+
 function showLoggedOutState(message = "", tone = "info") {
   authState.isChecking = false;
   authState.isAdmin = false;
+  authState.hasSession = false;
   authState.activeSessionToken = "";
   sessionEmail.textContent = "";
 
@@ -525,8 +549,28 @@ function showLoggedOutState(message = "", tone = "info") {
   }
 
   clearAdminState();
-  setAdminVisibility(false);
-  setAuthFeedback(message, tone);
+  setAdminView("login");
+  setAccessDeniedMessage("Je hebt geen toegang tot dit beheer.");
+  setAuthFeedback(message || "Meld je aan om het beheer te openen.", tone);
+  syncAuthControls();
+  syncControls();
+}
+
+function showAccessDeniedState(session, message = "Je hebt geen toegang tot dit beheer.") {
+  authState.isChecking = false;
+  authState.isAdmin = false;
+  authState.hasSession = true;
+  authState.activeSessionToken = session.access_token || "";
+  sessionEmail.textContent = "";
+
+  if (!cropModal.hidden) {
+    cancelCropper();
+  }
+
+  clearAdminState();
+  setAdminView("denied");
+  setAccessDeniedMessage(message);
+  setAuthFeedback("", "info");
   syncAuthControls();
   syncControls();
 }
@@ -534,9 +578,10 @@ function showLoggedOutState(message = "", tone = "info") {
 async function showAdminState(session) {
   authState.isAdmin = true;
   authState.isChecking = false;
+  authState.hasSession = true;
   authState.activeSessionToken = session.access_token || "";
   sessionEmail.textContent = session.user.email || "";
-  setAdminVisibility(true);
+  setAdminView("admin");
   setAuthFeedback("", "info");
   syncAuthControls();
   syncControls();
@@ -579,16 +624,14 @@ async function handleSessionChange(session) {
     return;
   }
 
-  setAuthFeedback("Toegang wordt gecontroleerd...", "info");
+  showLoadingState("Toegang controleren...");
 
   try {
     // Auth alone is not enough: the user must also exist in public.admin_users.
     const isAdmin = await isCurrentUserAdmin();
 
     if (!isAdmin) {
-      authState.pendingLoggedOutMessage = "Je hebt geen toegang tot dit beheer.";
-      authState.pendingLoggedOutTone = "error";
-      await signOutAdmin();
+      showAccessDeniedState(session);
       return;
     }
 
@@ -649,6 +692,7 @@ async function handleLogout() {
   }
 
   authState.isChecking = true;
+  showLoadingState("Uitloggen...");
   syncAuthControls();
 
   try {
@@ -656,7 +700,16 @@ async function handleLogout() {
     authState.pendingLoggedOutTone = "info";
     await signOutAdmin();
   } catch (error) {
-    setAuthFeedback(error.message || "Uitloggen mislukte.", "error");
+    if (authState.hasSession && !authState.isAdmin) {
+      setAdminView("denied");
+      setAccessDeniedMessage(error.message || "Uitloggen mislukte.");
+    } else if (authState.isAdmin) {
+      setAdminView("admin");
+      setFormFeedback(error.message || "Uitloggen mislukte.", "error");
+    } else {
+      setAdminView("login");
+      setAuthFeedback(error.message || "Uitloggen mislukte.", "error");
+    }
   } finally {
     authState.isChecking = false;
     syncAuthControls();
@@ -664,8 +717,8 @@ async function handleLogout() {
 }
 
 async function initializeAdminAuth() {
-  setAdminVisibility(false);
-  setAuthFeedback("Beheersessie controleren...", "info");
+  showLoadingState("Toegang controleren...");
+  setAuthFeedback("", "info");
   syncAuthControls();
   syncControls();
 
@@ -1196,6 +1249,7 @@ productForm.addEventListener("submit", handleSave);
 imageInput.addEventListener("change", handleImageSelection);
 loginForm.addEventListener("submit", handleLoginSubmit);
 logoutButton.addEventListener("click", handleLogout);
+accessDeniedLogoutButton.addEventListener("click", handleLogout);
 cropCancelButton.addEventListener("click", cancelCropper);
 cropConfirmButton.addEventListener("click", confirmCropper);
 cropRotateButton.addEventListener("click", () => {
@@ -1270,7 +1324,9 @@ window.addEventListener("resize", () => {
 
 resetForm();
 renderProductList();
-setAuthFeedback("Beheersessie controleren...", "info");
+setAuthLoadingMessage("Toegang controleren...");
+setAccessDeniedMessage("Je hebt geen toegang tot dit beheer.");
+setAuthFeedback("", "info");
 setUploadStatus("", "info");
 syncAuthControls();
 syncControls();

@@ -5,7 +5,8 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Verdia | Luxe zijden bloemstukken</title>
   <meta name="description" content="Verdia maakt luxueuze, tijdloze zijden bloemstukken in Schilde, Sint-Job-in-'t-Goor en Zoersel." />
-  <link rel="stylesheet" href="styles.css?v=5.3" />
+  <link rel="icon" type="image/svg+xml" href='data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"%3E%3Crect width="64" height="64" rx="18" fill="%230f0c09"/%3E%3Cpath d="M18 16 30 48 46 16" fill="none" stroke="%23ead3a1" stroke-linecap="round" stroke-linejoin="round" stroke-width="6"/%3E%3C/svg%3E' />
+  <link rel="stylesheet" href="styles.css?v=5.5" />
 </head>
 <body>
   <div id="demoBanner" class="demoBanner">
@@ -20,11 +21,23 @@
       <span class="mark">V</span>
       <span>Verdia</span>
     </div>
-    <nav>
-      <a href="#collectie">Collectie</a>
-      <a href="#maatwerk">Maatwerk</a>
-      <a href="#contact">Contact</a>
-    </nav>
+    <div class="navActions">
+      <nav aria-label="Hoofdnavigatie">
+        <a href="#collectie">Collectie</a>
+        <a href="#maatwerk">Maatwerk</a>
+        <a href="#contact">Contact</a>
+      </nav>
+      <button
+        type="button"
+        id="accountButton"
+        class="btn ghost navAccountButton"
+        aria-haspopup="dialog"
+        aria-controls="accountModal"
+        aria-expanded="false"
+      >
+        Inloggen
+      </button>
+    </div>
   </header>
 
   <main>
@@ -237,8 +250,74 @@
     </div>
   </div>
 
+  <div id="accountModal" class="accountModal" hidden>
+    <div class="accountModalDialog" role="dialog" aria-modal="true" aria-labelledby="accountModalTitle">
+      <button
+        type="button"
+        id="accountModalClose"
+        class="accountModalClose"
+        aria-label="Sluit accountvenster"
+      >
+        ×
+      </button>
+
+      <div class="accountModalHeader">
+        <span class="sectionTag">Verdia account</span>
+        <h2 id="accountModalTitle">Inloggen</h2>
+        <p id="accountModalIntro" class="accountModalIntro">
+          Log in of maak een account aan. Bestellingen verschijnen hier later.
+        </p>
+      </div>
+
+      <p id="accountModalStatus" class="accountModalStatus" role="status" hidden></p>
+
+      <div id="accountLoggedOutView">
+        <div class="accountModeSwitch" role="group" aria-label="Aanmeldmethode">
+          <button type="button" id="accountModeLoginButton" class="accountModeButton is-active" aria-pressed="true">
+            Inloggen
+          </button>
+          <button type="button" id="accountModeRegisterButton" class="accountModeButton" aria-pressed="false">
+            Registreren
+          </button>
+        </div>
+
+        <form id="accountAuthForm" class="formGrid accountAuthForm" novalidate>
+          <label class="field">
+            <span>E-mail</span>
+            <input id="accountEmailInput" type="email" autocomplete="email" required />
+          </label>
+
+          <label class="field">
+            <span>Wachtwoord</span>
+            <input id="accountPasswordInput" type="password" autocomplete="current-password" required />
+          </label>
+
+          <div class="field fieldWide accountModalFooter">
+            <p id="accountModeHint" class="formNote">
+              Gebruik je e-mailadres en wachtwoord. Afrekenen blijft later ook zonder account mogelijk.
+            </p>
+            <button type="submit" id="accountSubmitButton" class="btn primary">Inloggen</button>
+          </div>
+        </form>
+      </div>
+
+      <div id="accountLoggedInView" hidden>
+        <div class="accountSummary">
+          <span class="accountSummaryLabel">Aangemeld als</span>
+          <strong id="accountEmailValue"></strong>
+        </div>
+
+        <p class="accountSummaryText">Bestellingen verschijnen hier later.</p>
+
+        <div class="accountModalFooter accountModalFooterSingle">
+          <button type="button" id="accountLogoutButton" class="btn primary">Uitloggen</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="supabase-config.js"></script>
-  <script type="module" src="app.js?v=5.4"></script>
+  <script type="module" src="app.js?v=5.5"></script>
 </body>
 </html>
