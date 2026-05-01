@@ -76,6 +76,10 @@ const checkoutNoteInput = document.querySelector("#checkoutNoteInput");
 const checkoutContinueButton = document.querySelector("#checkoutContinueButton");
 const checkoutBackToCartButton = document.querySelector("#checkoutBackToCartButton");
 const checkoutBackToFormButton = document.querySelector("#checkoutBackToFormButton");
+const checkoutPaymentName = document.querySelector("#checkoutPaymentName");
+const checkoutPaymentEmail = document.querySelector("#checkoutPaymentEmail");
+const checkoutPaymentPhone = document.querySelector("#checkoutPaymentPhone");
+const checkoutPaymentNote = document.querySelector("#checkoutPaymentNote");
 const checkoutPaymentMethods = document.querySelector("#checkoutPaymentMethods");
 const checkoutPaymentProcessing = document.querySelector("#checkoutPaymentProcessing");
 const checkoutPaymentMethodHint = document.querySelector("#checkoutPaymentMethodHint");
@@ -1877,6 +1881,27 @@ function setCheckoutHeaderCopy(eyebrow, title, intro) {
   }
 }
 
+function renderCheckoutCustomerSummary() {
+  if (
+    !checkoutPaymentName
+    || !checkoutPaymentEmail
+    || !checkoutPaymentPhone
+    || !checkoutPaymentNote
+  ) {
+    return;
+  }
+
+  const { name, email, phone, note } = storefrontState.checkout.form;
+  const noteValue = typeof note === "string" ? note.trim() : "";
+  const normalizedNote = noteValue || "Geen voorkeur opgegeven.";
+
+  checkoutPaymentName.textContent = name || "-";
+  checkoutPaymentEmail.textContent = email || "-";
+  checkoutPaymentPhone.textContent = phone || "-";
+  checkoutPaymentNote.textContent = normalizedNote;
+  checkoutPaymentNote.dataset.empty = noteValue ? "false" : "true";
+}
+
 function renderCheckoutResult() {
   if (
     !checkoutResultBadge ||
@@ -2020,6 +2045,7 @@ function renderCheckoutStep() {
       : `Je kiest voor ${methodLabel}. Selecteer hieronder de gewenste testuitkomst.`;
   }
 
+  renderCheckoutCustomerSummary();
   renderPaymentPickupNote();
   renderCheckoutSummary();
 

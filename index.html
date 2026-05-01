@@ -6,7 +6,7 @@
   <title>Verdia | Luxe zijden bloemstukken</title>
   <meta name="description" content="Verdia maakt luxueuze, tijdloze zijden bloemstukken in Schilde, Sint-Job-in-'t-Goor en Zoersel." />
   <link rel="icon" type="image/svg+xml" href='data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"%3E%3Crect width="64" height="64" rx="18" fill="%230f0c09"/%3E%3Cpath d="M18 16 30 48 46 16" fill="none" stroke="%23ead3a1" stroke-linecap="round" stroke-linejoin="round" stroke-width="6"/%3E%3C/svg%3E' />
-  <link rel="stylesheet" href="styles.css?v=5.7" />
+  <link rel="stylesheet" href="styles.css?v=5.8" />
 </head>
 <body>
   <div id="demoBanner" class="demoBanner">
@@ -371,7 +371,7 @@
               </label>
 
               <label class="field fieldWide">
-                <span>Opmerking</span>
+                <span>Opmerking of voorkeur voor afhaling</span>
                 <textarea id="checkoutNoteInput" rows="5" placeholder="Eventuele voorkeur voor dag of tijdstip van afhalen."></textarea>
               </label>
 
@@ -390,6 +390,35 @@
                   <p>Demo-omgeving. Geen echte betaling, wel een realistische flow.</p>
                 </div>
                 <button type="button" id="checkoutBackToFormButton" class="btn ghost">Gegevens aanpassen</button>
+              </div>
+
+              <div class="paymentCustomerSummary">
+                <div class="paymentCustomerSummaryHeader">
+                  <span class="sectionTag">Overzicht</span>
+                  <strong>Jouw gegevens en afhaalvoorkeur</strong>
+                </div>
+
+                <div class="paymentCustomerGrid">
+                  <div class="paymentSummaryField">
+                    <span class="paymentSummaryLabel">Naam</span>
+                    <strong id="checkoutPaymentName">-</strong>
+                  </div>
+
+                  <div class="paymentSummaryField">
+                    <span class="paymentSummaryLabel">E-mail</span>
+                    <strong id="checkoutPaymentEmail">-</strong>
+                  </div>
+
+                  <div class="paymentSummaryField">
+                    <span class="paymentSummaryLabel">Telefoonnummer</span>
+                    <strong id="checkoutPaymentPhone">-</strong>
+                  </div>
+
+                  <div class="paymentSummaryField paymentSummaryFieldWide">
+                    <span class="paymentSummaryLabel">Opmerking of voorkeur voor afhaling</span>
+                    <p id="checkoutPaymentNote" class="paymentSummaryNote">Geen voorkeur opgegeven.</p>
+                  </div>
+                </div>
               </div>
 
               <div id="checkoutPaymentMethods" class="paymentMethods" role="list"></div>
@@ -531,6 +560,6 @@
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="supabase-config.js"></script>
-  <script type="module" src="app.js?v=5.7"></script>
+  <script type="module" src="app.js?v=5.8"></script>
 </body>
 </html>
