@@ -1,4 +1,4 @@
-import { fetchProductsWithImages, formatPrice } from "./supabase.js";
+import { fetchProductsWithImages, formatPrice } from "./supabase.js?v=2.0";
 
 const productGrid = document.querySelector("#productGrid");
 const productStatus = document.querySelector("#productStatus");

@@ -1,9 +1,86 @@
 export const STORAGE_BUCKET = "verdia-products";
 
+const PRODUCT_SELECT_FIELDS = `
+  id,
+  name,
+  description,
+  price,
+  price_label,
+  featured,
+  sort_order,
+  created_at,
+  status,
+  sold_at,
+  reserved_until,
+  sku,
+  deleted_at
+`;
+
+const LEGACY_PRODUCT_SELECT_FIELDS = `
+  id,
+  name,
+  description,
+  price,
+  price_label,
+  featured,
+  sort_order,
+  created_at
+`;
+
 let cachedClient = null;
 
 function getConfig() {
   return window.VERDIA_SUPABASE || {};
+}
+
+function hasOwn(object, key) {
+  return Object.prototype.hasOwnProperty.call(object, key);
+}
+
+function isMissingProductLifecycleColumnError(error) {
+  const message = String(error?.message || "");
+
+  return (
+    /schema cache/i.test(message) ||
+    /column .* does not exist/i.test(message) ||
+    /status/i.test(message) ||
+    /sold_at/i.test(message) ||
+    /reserved_until/i.test(message) ||
+    /sku/i.test(message) ||
+    /deleted_at/i.test(message)
+  );
+}
+
+function mapAuthErrorMessage(error, fallbackMessage) {
+  const message = String(error?.message || "").toLowerCase();
+
+  if (message.includes("email not confirmed")) {
+    return "Bevestig eerst het e-mailadres van dit beheeraccount.";
+  }
+
+  if (message.includes("invalid login credentials") || message.includes("invalid credentials")) {
+    return "Het e-mailadres of wachtwoord klopt niet.";
+  }
+
+  if (message.includes("email rate limit exceeded")) {
+    return "Er zijn te veel aanmeldpogingen. Probeer het straks opnieuw.";
+  }
+
+  if (message.includes("failed to fetch") || message.includes("network")) {
+    return "Supabase kon niet bereikt worden. Controleer je verbinding en probeer opnieuw.";
+  }
+
+  return error?.message ? error.message : fallbackMessage;
+}
+
+function mapAdminCheckError(error, fallbackMessage) {
+  const message = String(error?.message || "");
+
+  if (/is_admin/i.test(message) || /schema cache/i.test(message) || /permission denied/i.test(message)) {
+    return "Admin-toegang is nog niet volledig geconfigureerd in Supabase. Voer eerst `supabase/setup.sql` uit.";
+  }
+
+  return error?.message ? error.message : fallbackMessage;
 }
 
 export function getSupabaseErrorMessage() {
@@ -36,9 +113,9 @@ export function getSupabaseClient() {
 
     cachedClient = window.supabase.createClient(url, anonKey, {
       auth: {
-        autoRefreshToken: false,
+        autoRefreshToken: true,
         detectSessionInUrl: false,
-        persistSession: false,
+        persistSession: true,
       },
     });
   }
@@ -73,6 +150,14 @@ function ensureSuccess(error, fallbackMessage) {
   }
 }
 
+function normalizeProductStatus(status) {
+  if (["available", "reserved", "sold", "hidden"].includes(status)) {
+    return status;
+  }
+
+  return "available";
+}
+
 function normalizeProduct(row, images) {
   return {
     id: row.id,
@@ -80,34 +165,80 @@ function normalizeProduct(row, images) {
     description: row.description || "",
     price: row.price == null ? null : Number(row.price),
     price_label: row.price_label === "op_aanvraag" ? "op_aanvraag" : "vanaf",
+    featured: Boolean(row.featured),
     sort_order: Number(row.sort_order || 0),
     created_at: row.created_at || "",
+    status: normalizeProductStatus(row.status),
+    sold_at: row.sold_at || null,
+    reserved_until: row.reserved_until || null,
+    sku: row.sku || null,
+    deleted_at: row.deleted_at || null,
     images,
   };
 }
 
-export async function fetchProductsWithImages() {
+async function runProductQuery(selectFields, options = {}) {
   const supabase = getSupabaseClient();
+  const { adminScope = false, includeLifecycleFilters = false } = options;
+  let query = supabase
+    .from("products")
+    .select(selectFields)
+    .order("sort_order", { ascending: true })
+    .order("created_at", { ascending: false });
 
-  const [productsResponse, imagesResponse] = await Promise.all([
-    supabase
-      .from("products")
-      .select("id, name, description, price, price_label, sort_order, created_at")
-      .order("sort_order", { ascending: true })
-      .order("created_at", { ascending: false }),
-    supabase
-      .from("product_images")
-      .select("id, product_id, image_url, position")
-      .order("product_id", { ascending: true })
-      .order("position", { ascending: true }),
-  ]);
+  if (includeLifecycleFilters) {
+    query = query.is("deleted_at", null);
 
-  ensureSuccess(productsResponse.error, "Producten konden niet geladen worden.");
-  ensureSuccess(imagesResponse.error, "Productafbeeldingen konden niet geladen worden.");
+    if (!adminScope) {
+      query = query.eq("status", "available");
+    }
+  }
 
+  return query;
+}
+
+async function fetchProductRows(options = {}) {
+  const { adminScope = false } = options;
+  let response = await runProductQuery(PRODUCT_SELECT_FIELDS, {
+    adminScope,
+    includeLifecycleFilters: true,
+  });
+
+  if (response.error && isMissingProductLifecycleColumnError(response.error)) {
+    // Keep the storefront and admin readable while the SQL migration is being rolled out.
+    response = await runProductQuery(LEGACY_PRODUCT_SELECT_FIELDS, {
+      adminScope,
+      includeLifecycleFilters: false,
+    });
+  }
+
+  ensureSuccess(response.error, "Producten konden niet geladen worden.");
+  return response.data || [];
+}
+
+async function fetchImageRows(productIds) {
+  if (!productIds.length) {
+    return [];
+  }
+
+  const supabase = getSupabaseClient();
+  const response = await supabase
+    .from("product_images")
+    .select("id, product_id, image_url, position")
+    .in("product_id", productIds)
+    .order("product_id", { ascending: true })
+    .order("position", { ascending: true });
+
+  ensureSuccess(response.error, "Productafbeeldingen konden niet geladen worden.");
+  return response.data || [];
+}
+
+async function fetchProductsForScope(options = {}) {
+  const productRows = await fetchProductRows(options);
+  const imageRows = await fetchImageRows(productRows.map((row) => row.id));
   const imagesByProductId = new Map();
 
-  for (const imageRow of imagesResponse.data || []) {
+  for (const imageRow of imageRows) {
     const list = imagesByProductId.get(imageRow.product_id) || [];
 
     list.push({
@@ -119,7 +250,7 @@ export async function fetchProductsWithImages() {
     imagesByProductId.set(imageRow.product_id, list);
   }
 
-  return (productsResponse.data || []).map((productRow) =>
+  return productRows.map((productRow) =>
     normalizeProduct(
       productRow,
       (imagesByProductId.get(productRow.id) || []).sort((left, right) => left.position - right.position),
@@ -127,14 +258,48 @@ export async function fetchProductsWithImages() {
   );
 }
 
+export async function fetchProductsWithImages() {
+  return fetchProductsForScope({ adminScope: false });
+}
+
+export async function fetchAdminProductsWithImages() {
+  return fetchProductsForScope({ adminScope: true });
+}
+
 function createProductPayload(values) {
-  return {
+  const payload = {
     name: values.name,
     description: values.description,
     price: values.price == null || values.price === "" ? null : Number(values.price),
     price_label: values.price_label === "op_aanvraag" ? "op_aanvraag" : "vanaf",
     sort_order: Number.isFinite(Number(values.sort_order)) ? Number(values.sort_order) : 0,
   };
+
+  if (hasOwn(values, "featured")) {
+    payload.featured = Boolean(values.featured);
+  }
+
+  if (hasOwn(values, "status")) {
+    payload.status = normalizeProductStatus(values.status);
+  }
+
+  if (hasOwn(values, "sold_at")) {
+    payload.sold_at = values.sold_at || null;
+  }
+
+  if (hasOwn(values, "reserved_until")) {
+    payload.reserved_until = values.reserved_until || null;
+  }
+
+  if (hasOwn(values, "sku")) {
+    payload.sku = values.sku ? String(values.sku).trim() : null;
+  }
+
+  if (hasOwn(values, "deleted_at")) {
+    payload.deleted_at = values.deleted_at || null;
+  }
+
+  return payload;
 }
 
 export async function saveProduct(values) {
@@ -146,7 +311,7 @@ export async function saveProduct(values) {
       .from("products")
       .update(payload)
       .eq("id", values.id)
-      .select("id, name, description, price, price_label, sort_order, created_at")
+      .select("id")
       .single();
 
     ensureSuccess(response.error, "Het product kon niet bijgewerkt worden.");
@@ -156,7 +321,7 @@ export async function saveProduct(values) {
   const response = await supabase
     .from("products")
     .insert(payload)
-    .select("id, name, description, price, price_label, sort_order, created_at")
+    .select("id")
     .single();
 
   ensureSuccess(response.error, "Het product kon niet aangemaakt worden.");
@@ -250,4 +415,63 @@ export async function deleteProduct(productId) {
 
   const productResponse = await supabase.from("products").delete().eq("id", productId);
   ensureSuccess(productResponse.error, "Het product kon niet verwijderd worden.");
+}
+
+export async function getCurrentSession() {
+  const supabase = getSupabaseClient();
+  const response = await supabase.auth.getSession();
+
+  ensureSuccess(response.error, "De aanmeldsessie kon niet gecontroleerd worden.");
+  return response.data.session || null;
+}
+
+export async function signInAdmin(email, password) {
+  const supabase = getSupabaseClient();
+  const response = await supabase.auth.signInWithPassword({
+    email,
+    password,
+  });
+
+  if (response.error) {
+    throw new Error(mapAuthErrorMessage(response.error, "Inloggen mislukte."));
+  }
+
+  return response.data.session || null;
+}
+
+export async function signOutAdmin() {
+  const supabase = getSupabaseClient();
+  const response = await supabase.auth.signOut();
+
+  ensureSuccess(response.error, "Uitloggen mislukte.");
+}
+
+export async function isCurrentUserAdmin() {
+  const session = await getCurrentSession();
+
+  if (!session?.user) {
+    return false;
+  }
+
+  const supabase = getSupabaseClient();
+  const response = await supabase.rpc("is_admin");
+
+  if (response.error) {
+    throw new Error(
+      mapAdminCheckError(response.error, "De admintoegang kon niet gecontroleerd worden."),
+    );
+  }
+
+  return Boolean(response.data);
+}
+
+export function onAuthStateChange(callback) {
+  const supabase = getSupabaseClient();
+  const { data } = supabase.auth.onAuthStateChange((_event, session) => {
+    callback(session || null);
+  });
+
+  return () => {
+    data.subscription.unsubscribe();
+  };
 }

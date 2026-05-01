@@ -52,6 +52,14 @@ code{
   margin-bottom:20px;
 }
 
+.adminHeaderActions{
+  display:flex;
+  align-items:center;
+  justify-content:flex-end;
+  gap:12px;
+  flex-wrap:wrap;
+}
+
 .eyebrow{
   margin:0 0 10px;
   color:var(--gold2);
@@ -93,6 +101,60 @@ p{
 .adminIntro{
   max-width:620px;
   margin-bottom:0;
+}
+
+.adminMain{
+  display:grid;
+  gap:20px;
+}
+
+.authLayout{
+  display:grid;
+  justify-items:center;
+}
+
+.authPanel{
+  width:min(100%,680px);
+  padding:24px;
+}
+
+.authHeader{
+  margin-bottom:18px;
+}
+
+.authIntro{
+  max-width:none;
+  margin-bottom:22px;
+}
+
+.authForm{
+  margin-top:4px;
+}
+
+.authActions{
+  display:flex;
+  align-items:center;
+  justify-content:flex-start;
+  gap:12px;
+}
+
+.sessionMeta{
+  display:grid;
+  gap:4px;
+  text-align:right;
+}
+
+.sessionMetaLabel{
+  color:var(--gold2);
+  text-transform:uppercase;
+  letter-spacing:.18em;
+  font-size:.7rem;
+  font-weight:700;
+}
+
+.sessionMeta strong{
+  color:var(--cream);
+  font-size:.96rem;
 }
 
 .adminNotice{
@@ -651,6 +713,10 @@ body.crop-open{
   .formActions,
   .imageTools{
     margin-top:14px;
+  }
+
+  .sessionMeta{
+    text-align:left;
   }
 
   .formGrid,

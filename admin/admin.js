@@ -1,17 +1,34 @@
 import {
   deleteProduct,
   extractStoragePath,
-  fetchProductsWithImages,
+  fetchAdminProductsWithImages,
   formatPrice,
+  getCurrentSession,
+  isCurrentUserAdmin,
+  onAuthStateChange,
   removeStorageObjects,
   replaceProductImages,
   saveProduct,
+  signInAdmin,
+  signOutAdmin,
   uploadProductImage,
-} from "../supabase.js";
+} from "../supabase.js?v=2.0";
 
 const MAX_IMAGES = 8;
 const PRODUCT_IMAGE_EXPORT_WIDTH = 1200;
 const PRODUCT_IMAGE_EXPORT_HEIGHT = 1500;
+
+const authView = document.querySelector("#authView");
+const adminApp = document.querySelector("#adminApp");
+const securityNotice = document.querySelector("#securityNotice");
+const loginForm = document.querySelector("#loginForm");
+const authFeedback = document.querySelector("#authFeedback");
+const loginEmailInput = document.querySelector("#loginEmailInput");
+const loginPasswordInput = document.querySelector("#loginPasswordInput");
+const loginButton = document.querySelector("#loginButton");
+const logoutButton = document.querySelector("#logoutButton");
+const sessionMeta = document.querySelector("#sessionMeta");
+const sessionEmail = document.querySelector("#sessionEmail");
 
 const productList = document.querySelector("#productList");
 const listStatus = document.querySelector("#listStatus");
@@ -51,6 +68,18 @@ const state = {
   images: [],
   removedImagePaths: [],
   isSaving: false,
+  hasLoadedProducts: false,
+};
+
+const authState = {
+  isReady: false,
+  isChecking: false,
+  checkingSessionToken: "",
+  isSubmitting: false,
+  isAdmin: false,
+  activeSessionToken: "",
+  pendingLoggedOutMessage: "",
+  pendingLoggedOutTone: "info",
 };
 
 const cropState = {
@@ -110,6 +139,54 @@ function setFormFeedback(message, tone = "info") {
 function setUploadStatus(message, tone = "info") {
   uploadStatus.textContent = message;
   uploadStatus.classList.toggle("is-error", tone === "error");
+}
+
+function setAuthFeedback(message, tone = "info") {
+  if (!message) {
+    authFeedback.hidden = true;
+    authFeedback.textContent = "";
+    authFeedback.removeAttribute("data-tone");
+    return;
+  }
+
+  authFeedback.hidden = false;
+  authFeedback.textContent = message;
+  authFeedback.dataset.tone = tone;
+}
+
+function setAdminVisibility(isVisible) {
+  authView.hidden = isVisible;
+  adminApp.hidden = !isVisible;
+  securityNotice.hidden = !isVisible;
+  logoutButton.hidden = !isVisible;
+  sessionMeta.hidden = !isVisible;
+}
+
+function syncAuthControls() {
+  const isBusy = authState.isSubmitting || authState.isChecking;
+
+  loginEmailInput.disabled = isBusy;
+  loginPasswordInput.disabled = isBusy;
+  loginButton.disabled = isBusy;
+  loginButton.textContent = authState.isSubmitting ? "Inloggen..." : "Inloggen";
+  logoutButton.disabled = authState.isSubmitting || authState.isChecking;
+}
+
+function clearAdminState() {
+  state.products = [];
+  state.currentProductId = null;
+  state.hasLoadedProducts = false;
+  state.isSaving = false;
+  clearCurrentImages();
+  productList.replaceChildren();
+  setListStatus("");
+  setFormFeedback("", "info");
+  setUploadStatus("", "info");
+  productForm.reset();
+  formTitle.textContent = "Nieuw product";
+  loginPasswordInput.value = "";
+  renderProductList();
+  renderImagePreviewGrid();
 }
 
 function disposeImages(images) {
@@ -202,7 +279,7 @@ function renderProductList() {
       product.id === state.currentProductId ? "productRow active" : "productRow",
     );
     button.type = "button";
-    button.disabled = state.isSaving;
+    button.disabled = state.isSaving || !authState.isAdmin;
     button.dataset.productId = product.id;
 
     const title = createElement("div", "productRowTitle");
@@ -269,9 +346,9 @@ function renderImagePreviewGrid() {
     moveRightButton.dataset.imageId = image.id;
     deleteButton.dataset.imageId = image.id;
 
-    moveLeftButton.disabled = state.isSaving || index === 0;
-    moveRightButton.disabled = state.isSaving || index === state.images.length - 1;
-    deleteButton.disabled = state.isSaving;
+    moveLeftButton.disabled = state.isSaving || !authState.isAdmin || index === 0;
+    moveRightButton.disabled = state.isSaving || !authState.isAdmin || index === state.images.length - 1;
+    deleteButton.disabled = state.isSaving || !authState.isAdmin;
 
     actions.append(moveLeftButton, moveRightButton, deleteButton);
     body.append(title, actions);
@@ -283,23 +360,24 @@ function renderImagePreviewGrid() {
 }
 
 function syncControls() {
+  const isEditorLocked = state.isSaving || !authState.isAdmin;
   const priceOnRequest = priceLabelInput.value === "op_aanvraag";
   const hasSavedProduct = Boolean(state.currentProductId);
   const limitReached = state.images.length >= MAX_IMAGES;
 
-  nameInput.disabled = state.isSaving;
-  descriptionInput.disabled = state.isSaving;
-  priceLabelInput.disabled = state.isSaving;
-  priceInput.disabled = state.isSaving || priceOnRequest;
-  sortOrderInput.disabled = state.isSaving;
-  imageInput.disabled = state.isSaving || limitReached;
-  newProductButton.disabled = state.isSaving;
-  deleteProductButton.disabled = state.isSaving || !hasSavedProduct;
-  saveProductButton.disabled = state.isSaving;
+  nameInput.disabled = isEditorLocked;
+  descriptionInput.disabled = isEditorLocked;
+  priceLabelInput.disabled = isEditorLocked;
+  priceInput.disabled = isEditorLocked || priceOnRequest;
+  sortOrderInput.disabled = isEditorLocked;
+  imageInput.disabled = isEditorLocked || limitReached;
+  newProductButton.disabled = isEditorLocked;
+  deleteProductButton.disabled = isEditorLocked || !hasSavedProduct;
+  saveProductButton.disabled = isEditorLocked;
   saveProductButton.textContent = state.isSaving ? "Opslaan..." : "Product opslaan";
 
   uploadButton.classList.toggle("is-disabled", imageInput.disabled);
-  uploadButtonText.textContent = limitReached && !state.isSaving
+  uploadButtonText.textContent = limitReached && !isEditorLocked
     ? `Maximum van ${MAX_IMAGES} afbeeldingen bereikt`
     : "Afbeeldingen toevoegen";
 
@@ -394,11 +472,16 @@ function validateForm(values) {
 }
 
 async function loadProducts(preferredProductId = state.currentProductId) {
+  if (!authState.isAdmin) {
+    return;
+  }
+
   setListStatus("Producten laden...");
 
   try {
-    const products = await fetchProductsWithImages();
+    const products = await fetchAdminProductsWithImages();
     state.products = products;
+    state.hasLoadedProducts = true;
 
     if (!products.length) {
       setListStatus("Nog geen producten toegevoegd.");
@@ -423,10 +506,192 @@ async function loadProducts(preferredProductId = state.currentProductId) {
   }
 }
 
+async function ensureProductsLoaded(preferredProductId) {
+  if (state.hasLoadedProducts) {
+    return;
+  }
+
+  await loadProducts(preferredProductId);
+}
+
+function showLoggedOutState(message = "", tone = "info") {
+  authState.isChecking = false;
+  authState.isAdmin = false;
+  authState.activeSessionToken = "";
+  sessionEmail.textContent = "";
+
+  if (!cropModal.hidden) {
+    cancelCropper();
+  }
+
+  clearAdminState();
+  setAdminVisibility(false);
+  setAuthFeedback(message, tone);
+  syncAuthControls();
+  syncControls();
+}
+
+async function showAdminState(session) {
+  authState.isAdmin = true;
+  authState.isChecking = false;
+  authState.activeSessionToken = session.access_token || "";
+  sessionEmail.textContent = session.user.email || "";
+  setAdminVisibility(true);
+  setAuthFeedback("", "info");
+  syncAuthControls();
+  syncControls();
+
+  try {
+    await ensureProductsLoaded(state.currentProductId);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+async function handleSessionChange(session) {
+  const sessionToken = session?.access_token || "";
+
+  if (sessionToken && authState.checkingSessionToken === sessionToken) {
+    return;
+  }
+
+  authState.isChecking = true;
+  authState.checkingSessionToken = sessionToken;
+  syncAuthControls();
+
+  if (sessionToken && authState.isAdmin && authState.activeSessionToken === sessionToken) {
+    authState.isChecking = false;
+    authState.checkingSessionToken = "";
+    syncAuthControls();
+    return;
+  }
+
+  if (!session?.user) {
+    const pendingMessage = authState.pendingLoggedOutMessage;
+    const pendingTone = authState.pendingLoggedOutTone;
+    authState.pendingLoggedOutMessage = "";
+    authState.pendingLoggedOutTone = "info";
+    showLoggedOutState(
+      pendingMessage || "Meld je aan om het beheer te openen.",
+      pendingMessage ? pendingTone : "info",
+    );
+    authState.isReady = true;
+    return;
+  }
+
+  setAuthFeedback("Toegang wordt gecontroleerd...", "info");
+
+  try {
+    // Auth alone is not enough: the user must also exist in public.admin_users.
+    const isAdmin = await isCurrentUserAdmin();
+
+    if (!isAdmin) {
+      authState.pendingLoggedOutMessage = "Je hebt geen toegang tot dit beheer.";
+      authState.pendingLoggedOutTone = "error";
+      await signOutAdmin();
+      return;
+    }
+
+    await showAdminState(session);
+  } catch (error) {
+    showLoggedOutState(error.message || "De admintoegang kon niet gecontroleerd worden.", "error");
+  } finally {
+    if (authState.checkingSessionToken === sessionToken) {
+      authState.checkingSessionToken = "";
+    }
+    authState.isReady = true;
+    authState.isChecking = false;
+    syncAuthControls();
+  }
+}
+
+async function handleLoginSubmit(event) {
+  event.preventDefault();
+
+  if (authState.isSubmitting || authState.isChecking) {
+    return;
+  }
+
+  const email = loginEmailInput.value.trim();
+  const password = loginPasswordInput.value;
+
+  if (!email) {
+    setAuthFeedback("Vul je e-mailadres in.", "error");
+    loginEmailInput.focus();
+    return;
+  }
+
+  if (!password) {
+    setAuthFeedback("Vul je wachtwoord in.", "error");
+    loginPasswordInput.focus();
+    return;
+  }
+
+  authState.isSubmitting = true;
+  setAuthFeedback("Aanmelden...", "info");
+  syncAuthControls();
+
+  try {
+    const session = await signInAdmin(email, password);
+    await handleSessionChange(session);
+    loginPasswordInput.value = "";
+  } catch (error) {
+    setAuthFeedback(error.message || "Inloggen mislukte.", "error");
+  } finally {
+    authState.isSubmitting = false;
+    syncAuthControls();
+  }
+}
+
+async function handleLogout() {
+  if (authState.isSubmitting || authState.isChecking) {
+    return;
+  }
+
+  authState.isChecking = true;
+  syncAuthControls();
+
+  try {
+    authState.pendingLoggedOutMessage = "Je bent uitgelogd.";
+    authState.pendingLoggedOutTone = "info";
+    await signOutAdmin();
+  } catch (error) {
+    setAuthFeedback(error.message || "Uitloggen mislukte.", "error");
+  } finally {
+    authState.isChecking = false;
+    syncAuthControls();
+  }
+}
+
+async function initializeAdminAuth() {
+  setAdminVisibility(false);
+  setAuthFeedback("Beheersessie controleren...", "info");
+  syncAuthControls();
+  syncControls();
+
+  onAuthStateChange((session) => {
+    if (!authState.isReady) {
+      return;
+    }
+
+    handleSessionChange(session).catch((error) => {
+      showLoggedOutState(error.message || "De sessie kon niet gecontroleerd worden.", "error");
+    });
+  });
+
+  try {
+    const session = await getCurrentSession();
+    await handleSessionChange(session);
+  } catch (error) {
+    showLoggedOutState(error.message || "De sessie kon niet gecontroleerd worden.", "error");
+    authState.isReady = true;
+  }
+}
+
 async function handleSave(event) {
   event.preventDefault();
 
-  if (state.isSaving) {
+  if (state.isSaving || !authState.isAdmin) {
     return;
   }
 
@@ -518,7 +783,7 @@ async function handleSave(event) {
 async function handleDeleteProduct() {
   const product = getSelectedProduct();
 
-  if (!product || state.isSaving) {
+  if (!product || state.isSaving || !authState.isAdmin) {
     return;
   }
 
@@ -789,6 +1054,10 @@ function openCropper(file) {
 }
 
 async function handleImageSelection(event) {
+  if (!authState.isAdmin) {
+    return;
+  }
+
   const files = Array.from(event.target.files || []);
   event.target.value = "";
 
@@ -865,7 +1134,7 @@ async function handleImageSelection(event) {
 productList.addEventListener("click", (event) => {
   const button = event.target.closest("[data-product-id]");
 
-  if (!button || state.isSaving) {
+  if (!button || state.isSaving || !authState.isAdmin) {
     return;
   }
 
@@ -884,7 +1153,7 @@ productList.addEventListener("click", (event) => {
 imagePreviewGrid.addEventListener("click", (event) => {
   const button = event.target.closest("[data-action]");
 
-  if (!button || state.isSaving) {
+  if (!button || state.isSaving || !authState.isAdmin) {
     return;
   }
 
@@ -912,7 +1181,7 @@ priceLabelInput.addEventListener("change", () => {
 });
 
 newProductButton.addEventListener("click", () => {
-  if (state.isSaving) {
+  if (state.isSaving || !authState.isAdmin) {
     return;
   }
 
@@ -925,6 +1194,8 @@ newProductButton.addEventListener("click", () => {
 deleteProductButton.addEventListener("click", handleDeleteProduct);
 productForm.addEventListener("submit", handleSave);
 imageInput.addEventListener("change", handleImageSelection);
+loginForm.addEventListener("submit", handleLoginSubmit);
+logoutButton.addEventListener("click", handleLogout);
 cropCancelButton.addEventListener("click", cancelCropper);
 cropConfirmButton.addEventListener("click", confirmCropper);
 cropRotateButton.addEventListener("click", () => {
@@ -999,6 +1270,10 @@ window.addEventListener("resize", () => {
 
 resetForm();
 renderProductList();
+setAuthFeedback("Beheersessie controleren...", "info");
 setUploadStatus("", "info");
+syncAuthControls();
 syncControls();
-loadProducts().catch(() => {});
+initializeAdminAuth().catch((error) => {
+  showLoggedOutState(error.message || "Het beheer kon niet gestart worden.", "error");
+});

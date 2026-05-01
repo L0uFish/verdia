@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Verdia Admin</title>
   <meta name="robots" content="noindex,nofollow" />
-  <link rel="stylesheet" href="/admin/admin.css?v=1.1" />
+  <link rel="stylesheet" href="/admin/admin.css?v=1.2" />
 </head>
 <body class="adminPage">
   <div class="adminShell">
@@ -16,98 +16,134 @@
         <p class="adminIntro">Beheer producten en galerijbeelden rechtstreeks vanuit Supabase.</p>
       </div>
       <div class="adminHeaderActions">
+        <div id="sessionMeta" class="sessionMeta" hidden>
+          <span class="sessionMetaLabel">Aangemeld als</span>
+          <strong id="sessionEmail"></strong>
+        </div>
+        <button type="button" id="logoutButton" class="btn ghost" hidden>Uitloggen</button>
         <a class="btn ghost" href="../index.html">Bekijk website</a>
       </div>
     </header>
 
-    <div class="adminNotice">
-      <strong>Open MVP</strong>
-      <span>Deze admin heeft bewust geen login. Iedereen met toegang tot <code>/admin</code> kan producten aanpassen.</span>
+    <div id="securityNotice" class="adminNotice" hidden>
+      <strong>Beveiligd beheer</strong>
+      <span>Alleen aangemelde gebruikers die in <code>admin_users</code> staan kunnen producten en galerijbeelden beheren.</span>
     </div>
 
-    <main class="adminLayout">
-      <aside class="panel sidebar">
-        <div class="panelHeader">
-          <div>
-            <p class="eyebrow">Catalogus</p>
-            <h2>Producten</h2>
-          </div>
-          <button type="button" id="newProductButton" class="btn primary">Nieuw product</button>
-        </div>
-
-        <p id="listStatus" class="statusText">Producten laden...</p>
-        <div id="productList" class="productList"></div>
-      </aside>
-
-      <section class="panel editorPanel">
-        <form id="productForm" novalidate>
-          <div class="panelHeader formHeader">
+    <main class="adminMain">
+      <section id="authView" class="authLayout">
+        <div class="panel authPanel">
+          <div class="panelHeader authHeader">
             <div>
-              <p class="eyebrow">Bewerken</p>
-              <h2 id="formTitle">Nieuw product</h2>
-            </div>
-            <div class="formActions">
-              <button type="button" id="deleteProductButton" class="btn danger">Verwijder</button>
-              <button type="submit" id="saveProductButton" class="btn primary">Product opslaan</button>
+              <p class="eyebrow">Aanmelden</p>
+              <h2>Beheerlogin</h2>
             </div>
           </div>
 
-          <p id="formFeedback" class="feedback" hidden></p>
+          <p class="adminIntro authIntro">Meld je aan met je Verdia beheeraccount om producten en afbeeldingen te beheren.</p>
+          <p id="authFeedback" class="feedback" role="status">Beheersessie controleren...</p>
 
-          <div class="formGrid">
+          <form id="loginForm" class="formGrid authForm" novalidate>
             <label class="field">
-              <span>Naam</span>
-              <input id="nameInput" type="text" maxlength="120" required />
-            </label>
-
-            <label class="field fieldWide">
-              <span>Beschrijving</span>
-              <textarea id="descriptionInput" rows="5" maxlength="1200" required></textarea>
+              <span>E-mail</span>
+              <input id="loginEmailInput" type="email" autocomplete="email" required />
             </label>
 
             <label class="field">
-              <span>Prijslabel</span>
-              <select id="priceLabelInput">
-                <option value="vanaf">Vanaf</option>
-                <option value="op_aanvraag">Prijs op aanvraag</option>
-              </select>
+              <span>Wachtwoord</span>
+              <input id="loginPasswordInput" type="password" autocomplete="current-password" required />
             </label>
 
-            <label class="field">
-              <span>Prijs</span>
-              <input id="priceInput" type="number" min="0" step="0.01" inputmode="decimal" />
-              <small id="priceHint">Deze prijs verschijnt op de site als "Vanaf EUR ...".</small>
-            </label>
-
-            <label class="field">
-              <span>Sorteervolgorde</span>
-              <input id="sortOrderInput" type="number" step="1" value="0" />
-            </label>
-
-          </div>
-
-          <section class="imageSection">
-            <div class="imageSectionHead">
-              <div>
-                <p class="eyebrow">Galerij</p>
-                <h3>Afbeeldingen</h3>
-                <p class="helperText">Maximaal 8 beelden in hetzelfde 4:5-formaat als de productkaarten. Nieuwe afbeeldingen worden pas geupload bij opslaan.</p>
-              </div>
-
-              <div class="imageTools">
-                <span id="imageCount" class="imageCount">0 / 8</span>
-                <label class="uploadButton">
-                  <input id="imageInput" type="file" accept="image/*" multiple />
-                  <span id="uploadButtonText">Afbeeldingen toevoegen</span>
-                </label>
-              </div>
+            <div class="field fieldWide authActions">
+              <button type="submit" id="loginButton" class="btn primary">Inloggen</button>
             </div>
-
-            <p id="uploadStatus" class="statusText"></p>
-            <div id="imagePreviewGrid" class="imagePreviewGrid"></div>
-          </section>
-        </form>
+          </form>
+        </div>
       </section>
+
+      <div id="adminApp" class="adminLayout" hidden>
+        <aside class="panel sidebar">
+          <div class="panelHeader">
+            <div>
+              <p class="eyebrow">Catalogus</p>
+              <h2>Producten</h2>
+            </div>
+            <button type="button" id="newProductButton" class="btn primary">Nieuw product</button>
+          </div>
+
+          <p id="listStatus" class="statusText">Producten laden...</p>
+          <div id="productList" class="productList"></div>
+        </aside>
+
+        <section class="panel editorPanel">
+          <form id="productForm" novalidate>
+            <div class="panelHeader formHeader">
+              <div>
+                <p class="eyebrow">Bewerken</p>
+                <h2 id="formTitle">Nieuw product</h2>
+              </div>
+              <div class="formActions">
+                <button type="button" id="deleteProductButton" class="btn danger">Verwijder</button>
+                <button type="submit" id="saveProductButton" class="btn primary">Product opslaan</button>
+              </div>
+            </div>
+
+            <p id="formFeedback" class="feedback" hidden></p>
+
+            <div class="formGrid">
+              <label class="field">
+                <span>Naam</span>
+                <input id="nameInput" type="text" maxlength="120" required />
+              </label>
+
+              <label class="field fieldWide">
+                <span>Beschrijving</span>
+                <textarea id="descriptionInput" rows="5" maxlength="1200" required></textarea>
+              </label>
+
+              <label class="field">
+                <span>Prijslabel</span>
+                <select id="priceLabelInput">
+                  <option value="vanaf">Vanaf</option>
+                  <option value="op_aanvraag">Prijs op aanvraag</option>
+                </select>
+              </label>
+
+              <label class="field">
+                <span>Prijs</span>
+                <input id="priceInput" type="number" min="0" step="0.01" inputmode="decimal" />
+                <small id="priceHint">Deze prijs verschijnt op de site als "Vanaf EUR ...".</small>
+              </label>
+
+              <label class="field">
+                <span>Sorteervolgorde</span>
+                <input id="sortOrderInput" type="number" step="1" value="0" />
+              </label>
+            </div>
+
+            <section class="imageSection">
+              <div class="imageSectionHead">
+                <div>
+                  <p class="eyebrow">Galerij</p>
+                  <h3>Afbeeldingen</h3>
+                  <p class="helperText">Maximaal 8 beelden in hetzelfde 4:5-formaat als de productkaarten. Nieuwe afbeeldingen worden pas geupload bij opslaan.</p>
+                </div>
+
+                <div class="imageTools">
+                  <span id="imageCount" class="imageCount">0 / 8</span>
+                  <label class="uploadButton">
+                    <input id="imageInput" type="file" accept="image/*" multiple />
+                    <span id="uploadButtonText">Afbeeldingen toevoegen</span>
+                  </label>
+                </div>
+              </div>
+
+              <p id="uploadStatus" class="statusText"></p>
+              <div id="imagePreviewGrid" class="imagePreviewGrid"></div>
+            </section>
+          </form>
+        </section>
+      </div>
     </main>
   </div>
 
@@ -151,6 +187,6 @@
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="../supabase-config.js"></script>
-  <script type="module" src="/admin/admin.js?v=1.1"></script>
+  <script type="module" src="/admin/admin.js?v=1.2"></script>
 </body>
 </html>
