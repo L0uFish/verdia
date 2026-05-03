@@ -32,6 +32,11 @@ body {
   color: var(--text);
 }
 
+main {
+  width: min(1280px, calc(100% - 40px));
+  margin: 0 auto;
+}
+
 img {
   display: block;
   max-width: 100%;
@@ -83,6 +88,8 @@ body {
   justify-content: space-between;
   gap: 22px;
   padding: 20px clamp(20px, 3vw, 48px);
+  width: min(1280px, calc(100% - 32px));
+  margin: 0 auto;
   background: rgba(255, 252, 247, .96);
   border-bottom: 1px solid var(--border);
   backdrop-filter: blur(18px);
@@ -191,14 +198,16 @@ body {
 
 .hero-panel {
   display: grid;
-  grid-template-columns: minmax(0, 1.05fr) minmax(320px, 1fr);
-  gap: 36px;
+  grid-template-columns: minmax(0, 1.1fr) minmax(320px, 560px);
+  gap: 34px;
   align-items: center;
-  padding: 60px clamp(24px, 4vw, 56px);
+  padding: 52px clamp(24px, 4vw, 56px);
+  width: min(1200px, 100%);
+  margin: 0 auto;
 }
 
 .hero-copy {
-  max-width: 560px;
+  max-width: 520px;
   display: grid;
   gap: 22px;
 }
@@ -236,6 +245,8 @@ body {
 .hero-visual {
   display: grid;
   gap: 20px;
+  max-width: 560px;
+  margin-inline-start: auto;
 }
 
 .hero-media {
@@ -276,7 +287,9 @@ body {
 }
 
 .section {
-  padding: 56px clamp(24px, 4vw, 56px);
+  padding: 52px clamp(24px, 4vw, 52px);
+  width: min(1200px, 100%);
+  margin: 0 auto;
 }
 
 .section-heading {
@@ -304,8 +317,10 @@ body {
 
 .grid-list {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
   gap: 24px;
+  width: min(1200px, 100%);
+  margin: 0 auto;
 }
 
 .atelier-section {
@@ -496,6 +511,8 @@ body {
   justify-content: space-between;
   align-items: center;
   padding: 26px clamp(24px, 4vw, 60px);
+  width: min(1280px, calc(100% - 32px));
+  margin: 0 auto;
   border-top: 1px solid var(--border);
   color: #6f655b;
 }
@@ -1015,7 +1032,8 @@ body {
 
 .cardImage {
   position: relative;
-  min-height: 280px;
+  min-height: 260px;
+  aspect-ratio: 4 / 3;
   overflow: hidden;
   background: #f7f1e7;
 }
