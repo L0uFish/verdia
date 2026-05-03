@@ -198,11 +198,11 @@ body {
 
 .hero-panel {
   display: grid;
-  grid-template-columns: minmax(0, 1.1fr) minmax(320px, 560px);
-  gap: 34px;
-  align-items: center;
-  padding: 52px clamp(24px, 4vw, 56px);
-  width: min(1200px, 100%);
+  grid-template-columns: minmax(0, 1.1fr) minmax(320px, 520px);
+  gap: 32px;
+  align-items: start;
+  padding: 48px clamp(24px, 4vw, 56px);
+  width: min(1100px, 100%);
   margin: 0 auto;
 }
 
