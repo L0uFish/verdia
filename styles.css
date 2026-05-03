@@ -2657,25 +2657,27 @@ footer{
 
 /* MINIMAL SCANDINAVIAN OVERRIDE */
 :root{
-  --black:#2b2722;
-  --black2:#3d3933;
-  --gold:#b8a78f;
-  --gold2:#d8c8b3;
-  --cream:#f7f2eb;
+  --black:#312d27;
+  --black2:#47413a;
+  --gold:#b9a48c;
+  --gold2:#dac9b6;
+  --cream:#f7f2ea;
   --muted:#7d766d;
-  --line:rgba(169,149,124,.18);
-  --line-strong:rgba(169,149,124,.28);
-  --panel:rgba(255,250,244,.92);
-  --panel-soft:rgba(250,245,237,.55);
-  --shadow:0 16px 36px rgba(55,45,33,.08);
-  --spotlight-x:46vw;
-  --spotlight-y:18vh;
+  --line:rgba(160,140,118,.16);
+  --line-strong:rgba(160,140,118,.28);
+  --panel:rgba(255,250,244,.94);
+  --panel-soft:rgba(250,245,238,.56);
+  --shadow:0 18px 36px rgba(69,61,51,.08);
+  --spotlight-x:48vw;
+  --spotlight-y:16vh;
   --spotlight-opacity:.08;
 }
 
+html{background:#f7f2ea;}
+
 body{
-  background:linear-gradient(180deg,#f7f2eb 0%,#f4eee7 40%,#efebe4 100%);
-  color:#35302b;
+  background:linear-gradient(180deg,#f7f2ea 0%,#f4eee6 40%,#eeeadf 100%);
+  color:#332f29;
 }
 
 body::before{
@@ -2687,10 +2689,32 @@ body::after{
   background:radial-gradient(circle at var(--spotlight-x) var(--spotlight-y),rgba(235,224,205,.24) 0,rgba(235,224,205,.08) 90px,transparent 220px);
 }
 
+h1,h2,h3{
+  font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  font-weight:700;
+  letter-spacing:-.01em;
+  color:#2d2821;
+}
+
+h1{
+  font-size:clamp(2.8rem,4.6vw,4.4rem);
+  line-height:1.02;
+}
+
+h2{
+  font-size:clamp(2.05rem,3.8vw,3.3rem);
+  line-height:1.1;
+}
+
+h3{
+  font-size:1.35rem;
+}
+
 .nav{
-  background:rgba(255,250,244,.95);
-  border-bottom:1px solid rgba(190,176,154,.28);
+  background:#fefaf5;
+  border-bottom:1px solid rgba(172,153,129,.2);
   box-shadow:none;
+  padding:20px 0 18px;
 }
 
 .brand{
@@ -2698,13 +2722,13 @@ body::after{
 }
 
 .mark{
-  border-color:rgba(169,149,124,.38);
-  color:#8c7d69;
-  background:rgba(255,250,244,.82);
+  background:rgba(249,243,235,.9);
+  border-color:rgba(172,153,129,.3);
+  color:#7b6c5e;
 }
 
 .nav a{
-  color:#6e675f;
+  color:#6d655e;
 }
 
 .nav a:hover,
@@ -2714,40 +2738,89 @@ body::after{
 
 .navAccountButton,
 .navCartButton{
-  background:rgba(255,255,250,.9);
+  background:rgba(255,254,250,.96);
   color:#2f2924;
-  border-color:rgba(180,164,144,.3);
+  border-color:rgba(172,153,129,.26);
+}
+
+.navCartButton{
+  box-shadow:0 6px 18px rgba(87,71,53,.08);
+}
+
+.btn{
+  border-radius:18px;
 }
 
 .btn.primary{
-  background:linear-gradient(135deg,#d8c2a7,#c4ad97);
-  color:#2e271d;
-  box-shadow:0 12px 24px rgba(70,56,41,.1);
+  background:linear-gradient(135deg,#d9c1a8,#c5ad98);
+  color:#2f291f;
+  box-shadow:0 10px 24px rgba(81,67,46,.1);
   border-color:rgba(174,149,121,.3);
 }
 
 .btn.ghost{
-  background:rgba(250,246,238,.85);
-  color:#4d473f;
+  background:rgba(250,246,239,.9);
+  color:#4c453d;
+  border-color:rgba(172,153,129,.18);
 }
 
 .hero{
-  padding-top:56px;
-  padding-bottom:62px;
+  padding-top:70px;
+  padding-bottom:74px;
+  gap:48px;
+}
+
+.heroText{
+  gap:22px;
+}
+
+.heroSummary,
+.heroText p{
+  color:#615c55;
+}
+
+.heroDetail{
+  border-top-color:rgba(190,176,154,.18);
+}
+
+.heroDetail strong{
+  color:#2c2721;
+}
+
+.heroDetail span{
+  color:#6f685f;
 }
 
 .heroImage{
-  border-color:rgba(196,178,157,.35);
-  box-shadow:0 18px 44px rgba(77,66,52,.07);
+  border:1px solid rgba(196,178,157,.32);
+  background:rgba(255,250,244,.96);
+  box-shadow:0 20px 48px rgba(71,61,50,.06);
+  border-radius:28px;
+  padding:18px;
+}
+
+.heroImage img{
+  border-radius:22px;
+  object-position:center 42%;
 }
 
 .heroImage::after{
-  background:radial-gradient(circle at 20% 20%,rgba(255,255,255,.35),transparent 35%),linear-gradient(180deg,rgba(255,255,255,0) 0,rgba(255,255,255,.28) 100%);
+  background:radial-gradient(circle at 24% 24%,rgba(255,255,255,.42),transparent 34%),linear-gradient(180deg,rgba(255,255,255,0) 0,rgba(255,255,255,.24) 100%);
 }
 
 .heroCard{
-  background:rgba(255,250,244,.94);
-  border-color:rgba(190,176,154,.35);
+  position:static;
+  margin-top:20px;
+  width:auto;
+  border-radius:24px;
+  background:rgba(255,250,244,.96);
+  border:1px solid rgba(190,176,154,.28);
+  box-shadow:0 10px 28px rgba(74,63,49,.07);
+  padding:22px;
+}
+
+.heroCardLabel{
+  color:#7a6d5f;
 }
 
 .heroCard strong,
@@ -2755,120 +2828,127 @@ body::after{
   color:#3f3831;
 }
 
-.heroSummary,
-.heroText p{
-  color:#5f5750;
-}
-
-.heroDetail{
-  border-top-color:rgba(190,176,154,.22);
-}
-
-.heroDetail strong{
-  color:#2f2924;
-}
-
-.heroDetail span{
-  color:#6f675f;
+.heroDetails{
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:18px;
 }
 
 .features article{
-  background:rgba(255,250,244,.88);
-  border-top-color:rgba(190,176,154,.2);
+  background:rgba(255,250,244,.95);
+  border-top-color:rgba(190,176,154,.16);
+  padding:24px;
+  border-radius:24px;
 }
 
-.collection,
-.collectionRecent{
-  border-top-color:rgba(190,176,154,.28);
+.features span{
+  color:#8f8476;
+}
+
+.sectionHead{
+  grid-template-columns:1fr;
+  gap:18px 0;
+}
+
+.collectionRecent::before{
+  background:linear-gradient(180deg,rgba(255,250,244,.85),rgba(255,252,247,.68));
+  border-radius:30px;
 }
 
 .collectionRecent{
-  background:rgba(255,250,244,.55);
+  background:none;
 }
 
 .catalogStatus{
-  background:rgba(251,246,239,.85);
-  border-color:rgba(198,184,162,.4);
-  color:#6d665e;
+  background:rgba(251,246,239,.95);
+  border-color:rgba(198,184,162,.3);
+  color:#6e6760;
 }
 
 .card{
-  background:linear-gradient(180deg,#fbf7f2,#f5eee7);
-  border-color:rgba(207,191,170,.34);
-  box-shadow:0 20px 40px rgba(74,63,48,.07);
+  background:#fffdf8;
+  border-color:rgba(206,190,169,.34);
+  box-shadow:0 18px 38px rgba(68,57,46,.06);
 }
 
 .card:hover{
   transform:translateY(-2px);
-  border-color:rgba(171,149,124,.34);
-  box-shadow:0 22px 46px rgba(79,66,50,.08);
+  border-color:rgba(171,149,124,.28);
+  box-shadow:0 20px 44px rgba(75,62,47,.08);
 }
 
 .cardImage{
-  background:#f7f2eb;
+  background:#f7f2ed;
+  border-bottom:1px solid rgba(206,190,169,.3);
 }
 
-.cardBadgeWrap{
-  gap:8px;
+.cardImage::after{
+  background:linear-gradient(180deg,rgba(255,255,255,0) 42%,rgba(255,255,255,.14) 100%);
 }
 
-.availabilityBadge{
-  background:rgba(252,247,240,.92);
-  border-color:rgba(183,167,146,.32);
-  color:#4c453d;
+.cardBody{
+  gap:18px;
 }
 
-.availabilityBadge.is-available{
-  background:rgba(220,228,214,.9);
-  color:#38503d;
+.cardMetaRow h3{
+  color:#2f2923;
 }
 
-.availabilityBadge.is-reserved{
-  background:rgba(235,228,214,.9);
-  color:#5f533d;
+.cardDescription{
+  color:#6e665e;
 }
 
-.availabilityBadge.is-sold{
-  background:rgba(236,229,215,.92);
-  color:#5e513f;
-}
-
-.availabilityBadge.is-request{
-  background:rgba(242,239,232,.92);
-  color:#5f5b51;
+.cardFooter{
+  gap:18px;
 }
 
 .cardActionButton{
-  background:rgba(255,252,247,.92);
-  color:#423b33;
-  border-color:rgba(187,170,150,.3);
+  background:rgba(255,253,248,.96);
+  color:#4b4136;
+  border-color:rgba(186,168,148,.28);
 }
 
 .cardActionButton.is-primary{
-  background:linear-gradient(135deg,rgba(229,218,204,.96),rgba(210,193,173,.96));
-  color:#2f281d;
-  box-shadow:0 10px 22px rgba(76,62,44,.08);
+  background:linear-gradient(135deg,rgba(229,218,204,.98),rgba(213,196,177,.96));
+  color:#2f291d;
+  box-shadow:0 10px 22px rgba(79,62,45,.08);
 }
 
 .cardActionButton.is-request{
-  background:rgba(248,243,235,.92);
+  background:rgba(248,244,238,.92);
+}
+
+.cardMore{
+  background:rgba(250,246,239,.96);
+  color:#4a4138;
 }
 
 .cardPlaceholder{
-  background:linear-gradient(180deg,rgba(251,247,241,.9),rgba(243,237,228,.9));
-  color:#7f7a71;
+  background:linear-gradient(180deg,rgba(253,250,244,.98),rgba(246,240,231,.98));
+  color:#7a746d;
 }
 
 .atelierImage{
-  border-color:rgba(206,191,170,.35);
-  box-shadow:0 20px 42px rgba(77,63,49,.06);
+  border-color:rgba(206,191,170,.32);
+  box-shadow:0 20px 40px rgba(74,60,48,.05);
+}
+
+.atelierText li{
+  color:#4a4239;
+}
+
+.atelierText li::before{
+  color:#a89882;
 }
 
 .contactCard,
 .contactForm{
-  background:rgba(255,250,244,.92);
-  border-color:rgba(205,190,170,.35);
-  box-shadow:0 22px 42px rgba(82,68,49,.06);
+  background:rgba(255,250,244,.96);
+  border-color:rgba(205,190,170,.32);
+  box-shadow:0 20px 38px rgba(82,67,49,.05);
+}
+
+.contactLinks a{
+  color:#3f372f;
 }
 
 .contactLinks a:hover{
@@ -2879,37 +2959,42 @@ body::after{
 .field textarea,
 .field select{
   background:rgba(255,253,248,.98);
-  border-color:rgba(205,191,172,.42);
-  color:#3d3731;
+  border-color:rgba(206,189,168,.36);
+  color:#3f372f;
+}
+
+.field input::placeholder,
+.field textarea::placeholder{
+  color:rgba(129,120,108,.55);
 }
 
 .field input:focus,
 .field textarea:focus,
 .field select:focus{
-  border-color:rgba(169,143,117,.45);
-  box-shadow:0 0 0 4px rgba(223,212,193,.24);
+  border-color:rgba(160,140,120,.4);
+  box-shadow:0 0 0 4px rgba(226,214,196,.22);
 }
 
 .demoBanner{
   background:rgba(255,251,246,.96);
-  border-color:rgba(205,190,170,.35);
-  box-shadow:0 16px 40px rgba(84,71,52,.08);
+  border-color:rgba(205,190,170,.32);
+  box-shadow:0 16px 36px rgba(80,68,51,.07);
   color:#3f382f;
 }
 
 footer{
-  border-top-color:rgba(205,190,170,.35);
-  color:#5f584f;
+  border-top-color:rgba(205,190,170,.32);
+  color:#615c55;
 }
 
 .productModal{
-  background:rgba(250,246,239,.95);
+  background:rgba(255,252,247,.96);
 }
 
 .productModalDialog{
-  background:#fdf8f1;
-  border-color:rgba(205,190,170,.35);
-  box-shadow:0 24px 72px rgba(80,66,50,.08);
+  background:#fffaf3;
+  border-color:rgba(205,190,170,.32);
+  box-shadow:0 24px 62px rgba(80,66,50,.08);
 }
 
 .productModalClose{
@@ -2917,66 +3002,66 @@ footer{
 }
 
 .productModalImageBox{
-  background:#f7f1e9;
+  background:#f9f3e9;
 }
 
 .cartDrawerBackdrop{
-  background:rgba(244,239,231,.72);
+  background:rgba(244,239,231,.7);
 }
 
 .cartDrawerPanel{
-  background:#fbf5ef;
-  border-color:rgba(210,195,176,.38);
-  box-shadow:-16px 0 42px rgba(99,83,63,.08);
+  background:#faf4ed;
+  border-color:rgba(210,195,176,.34);
+  box-shadow:-16px 0 38px rgba(95,77,58,.07);
 }
 
 .cartDrawerHeader{
-  border-bottom:1px solid rgba(210,195,176,.4);
+  border-bottom:1px solid rgba(210,195,176,.32);
 }
 
 .cartStatus{
-  background:rgba(251,246,239,.85);
-  border-color:rgba(210,195,176,.36);
+  background:rgba(251,246,239,.95);
+  border-color:rgba(210,195,176,.32);
 }
 
 .cartEmptyState{
-  background:rgba(255,252,247,.92);
-  border-color:rgba(210,195,176,.35);
+  background:rgba(255,252,247,.94);
+  border-color:rgba(210,195,176,.32);
 }
 
 .cartItem{
-  background:rgba(255,252,247,.92);
-  border-color:rgba(210,194,176,.35);
+  background:rgba(255,252,247,.96);
+  border-color:rgba(210,194,176,.32);
 }
 
 .cartItemRemove{
-  background:rgba(255,252,247,.95);
+  background:rgba(255,252,247,.96);
 }
 
 .checkoutModalBackdrop{
-  background:rgba(241,234,221,.82);
+  background:rgba(245,239,229,.85);
 }
 
 .checkoutModalDialog{
-  background:#fdf9f2;
-  border-color:rgba(210,195,176,.35);
+  background:#fff9f2;
+  border-color:rgba(210,195,176,.32);
 }
 
 .checkoutMain,
 .checkoutSummaryPanel,
 .paymentPanel,
 .checkoutResultCard{
-  background:rgba(255,252,247,.95);
+  background:rgba(255,252,247,.96);
 }
 
 .paymentMethodButton{
-  background:rgba(255,252,247,.95);
-  border-color:rgba(205,191,173,.36);
-  color:#3d372f;
+  background:rgba(255,252,247,.96);
+  border-color:rgba(205,191,173,.34);
+  color:#3f372f;
 }
 
 .paymentMethodButton.is-active{
-  background:linear-gradient(135deg,rgba(231,221,205,.9),rgba(216,203,183,.9));
+  background:linear-gradient(135deg,rgba(231,221,205,.92),rgba(216,203,183,.92));
 }
 
 .paymentMethodHint{
@@ -2984,38 +3069,44 @@ footer{
 }
 
 .paymentActionBar{
-  background:rgba(255,252,247,.94);
-  border-color:rgba(210,195,176,.35);
+  background:rgba(255,252,247,.96);
+  border-color:rgba(210,195,176,.32);
 }
 
 .accountModal{
-  background:rgba(249,245,238,.95);
+  background:rgba(249,245,238,.96);
 }
 
 .accountModalDialog{
   background:#fffbf5;
-  border-color:rgba(205,191,173,.35);
+  border-color:rgba(205,191,173,.32);
 }
 
 .accountModeButton{
-  background:rgba(255,252,247,.95);
-  border-color:rgba(205,191,173,.36);
-  color:#3d372f;
+  background:rgba(255,252,247,.96);
+  border-color:rgba(205,191,173,.34);
+  color:#3f372f;
 }
 
 .accountModeButton.is-active{
-  background:#e8dfd3;
-  color:#2d281e;
+  background:#e9e0d4;
+  color:#2e281d;
 }
 
 .accountModalStatus{
-  background:rgba(251,246,239,.9);
-  border-color:rgba(205,191,173,.35);
+  background:rgba(251,246,239,.94);
+  border-color:rgba(205,191,173,.32);
 }
 
 .accountSummary{
-  background:rgba(255,252,247,.92);
-  border-color:rgba(205,191,173,.35);
+  background:rgba(255,252,247,.96);
+  border-color:rgba(205,191,173,.32);
+}
+
+.quote p{
+  color:#514a42;
+  font-size:clamp(1.45rem,3vw,2.35rem);
+  line-height:1.24;
 }
 
 @media(max-width:1180px){
