@@ -2654,3 +2654,391 @@ footer{
     grid-template-columns:1fr;
   }
 }
+
+/* MINIMAL SCANDINAVIAN OVERRIDE */
+:root{
+  --black:#2b2722;
+  --black2:#3d3933;
+  --gold:#b8a78f;
+  --gold2:#d8c8b3;
+  --cream:#f7f2eb;
+  --muted:#7d766d;
+  --line:rgba(169,149,124,.18);
+  --line-strong:rgba(169,149,124,.28);
+  --panel:rgba(255,250,244,.92);
+  --panel-soft:rgba(250,245,237,.55);
+  --shadow:0 16px 36px rgba(55,45,33,.08);
+  --spotlight-x:46vw;
+  --spotlight-y:18vh;
+  --spotlight-opacity:.08;
+}
+
+body{
+  background:linear-gradient(180deg,#f7f2eb 0%,#f4eee7 40%,#efebe4 100%);
+  color:#35302b;
+}
+
+body::before{
+  background-image:none;
+}
+
+body::after{
+  opacity:.08;
+  background:radial-gradient(circle at var(--spotlight-x) var(--spotlight-y),rgba(235,224,205,.24) 0,rgba(235,224,205,.08) 90px,transparent 220px);
+}
+
+.nav{
+  background:rgba(255,250,244,.95);
+  border-bottom:1px solid rgba(190,176,154,.28);
+  box-shadow:none;
+}
+
+.brand{
+  color:#2f2b26;
+}
+
+.mark{
+  border-color:rgba(169,149,124,.38);
+  color:#8c7d69;
+  background:rgba(255,250,244,.82);
+}
+
+.nav a{
+  color:#6e675f;
+}
+
+.nav a:hover,
+.nav a:focus-visible{
+  color:#2f2924;
+}
+
+.navAccountButton,
+.navCartButton{
+  background:rgba(255,255,250,.9);
+  color:#2f2924;
+  border-color:rgba(180,164,144,.3);
+}
+
+.btn.primary{
+  background:linear-gradient(135deg,#d8c2a7,#c4ad97);
+  color:#2e271d;
+  box-shadow:0 12px 24px rgba(70,56,41,.1);
+  border-color:rgba(174,149,121,.3);
+}
+
+.btn.ghost{
+  background:rgba(250,246,238,.85);
+  color:#4d473f;
+}
+
+.hero{
+  padding-top:56px;
+  padding-bottom:62px;
+}
+
+.heroImage{
+  border-color:rgba(196,178,157,.35);
+  box-shadow:0 18px 44px rgba(77,66,52,.07);
+}
+
+.heroImage::after{
+  background:radial-gradient(circle at 20% 20%,rgba(255,255,255,.35),transparent 35%),linear-gradient(180deg,rgba(255,255,255,0) 0,rgba(255,255,255,.28) 100%);
+}
+
+.heroCard{
+  background:rgba(255,250,244,.94);
+  border-color:rgba(190,176,154,.35);
+}
+
+.heroCard strong,
+.heroCard p{
+  color:#3f3831;
+}
+
+.heroSummary,
+.heroText p{
+  color:#5f5750;
+}
+
+.heroDetail{
+  border-top-color:rgba(190,176,154,.22);
+}
+
+.heroDetail strong{
+  color:#2f2924;
+}
+
+.heroDetail span{
+  color:#6f675f;
+}
+
+.features article{
+  background:rgba(255,250,244,.88);
+  border-top-color:rgba(190,176,154,.2);
+}
+
+.collection,
+.collectionRecent{
+  border-top-color:rgba(190,176,154,.28);
+}
+
+.collectionRecent{
+  background:rgba(255,250,244,.55);
+}
+
+.catalogStatus{
+  background:rgba(251,246,239,.85);
+  border-color:rgba(198,184,162,.4);
+  color:#6d665e;
+}
+
+.card{
+  background:linear-gradient(180deg,#fbf7f2,#f5eee7);
+  border-color:rgba(207,191,170,.34);
+  box-shadow:0 20px 40px rgba(74,63,48,.07);
+}
+
+.card:hover{
+  transform:translateY(-2px);
+  border-color:rgba(171,149,124,.34);
+  box-shadow:0 22px 46px rgba(79,66,50,.08);
+}
+
+.cardImage{
+  background:#f7f2eb;
+}
+
+.cardBadgeWrap{
+  gap:8px;
+}
+
+.availabilityBadge{
+  background:rgba(252,247,240,.92);
+  border-color:rgba(183,167,146,.32);
+  color:#4c453d;
+}
+
+.availabilityBadge.is-available{
+  background:rgba(220,228,214,.9);
+  color:#38503d;
+}
+
+.availabilityBadge.is-reserved{
+  background:rgba(235,228,214,.9);
+  color:#5f533d;
+}
+
+.availabilityBadge.is-sold{
+  background:rgba(236,229,215,.92);
+  color:#5e513f;
+}
+
+.availabilityBadge.is-request{
+  background:rgba(242,239,232,.92);
+  color:#5f5b51;
+}
+
+.cardActionButton{
+  background:rgba(255,252,247,.92);
+  color:#423b33;
+  border-color:rgba(187,170,150,.3);
+}
+
+.cardActionButton.is-primary{
+  background:linear-gradient(135deg,rgba(229,218,204,.96),rgba(210,193,173,.96));
+  color:#2f281d;
+  box-shadow:0 10px 22px rgba(76,62,44,.08);
+}
+
+.cardActionButton.is-request{
+  background:rgba(248,243,235,.92);
+}
+
+.cardPlaceholder{
+  background:linear-gradient(180deg,rgba(251,247,241,.9),rgba(243,237,228,.9));
+  color:#7f7a71;
+}
+
+.atelierImage{
+  border-color:rgba(206,191,170,.35);
+  box-shadow:0 20px 42px rgba(77,63,49,.06);
+}
+
+.contactCard,
+.contactForm{
+  background:rgba(255,250,244,.92);
+  border-color:rgba(205,190,170,.35);
+  box-shadow:0 22px 42px rgba(82,68,49,.06);
+}
+
+.contactLinks a:hover{
+  color:#2f2924;
+}
+
+.field input,
+.field textarea,
+.field select{
+  background:rgba(255,253,248,.98);
+  border-color:rgba(205,191,172,.42);
+  color:#3d3731;
+}
+
+.field input:focus,
+.field textarea:focus,
+.field select:focus{
+  border-color:rgba(169,143,117,.45);
+  box-shadow:0 0 0 4px rgba(223,212,193,.24);
+}
+
+.demoBanner{
+  background:rgba(255,251,246,.96);
+  border-color:rgba(205,190,170,.35);
+  box-shadow:0 16px 40px rgba(84,71,52,.08);
+  color:#3f382f;
+}
+
+footer{
+  border-top-color:rgba(205,190,170,.35);
+  color:#5f584f;
+}
+
+.productModal{
+  background:rgba(250,246,239,.95);
+}
+
+.productModalDialog{
+  background:#fdf8f1;
+  border-color:rgba(205,190,170,.35);
+  box-shadow:0 24px 72px rgba(80,66,50,.08);
+}
+
+.productModalClose{
+  background:rgba(255,255,252,.95);
+}
+
+.productModalImageBox{
+  background:#f7f1e9;
+}
+
+.cartDrawerBackdrop{
+  background:rgba(244,239,231,.72);
+}
+
+.cartDrawerPanel{
+  background:#fbf5ef;
+  border-color:rgba(210,195,176,.38);
+  box-shadow:-16px 0 42px rgba(99,83,63,.08);
+}
+
+.cartDrawerHeader{
+  border-bottom:1px solid rgba(210,195,176,.4);
+}
+
+.cartStatus{
+  background:rgba(251,246,239,.85);
+  border-color:rgba(210,195,176,.36);
+}
+
+.cartEmptyState{
+  background:rgba(255,252,247,.92);
+  border-color:rgba(210,195,176,.35);
+}
+
+.cartItem{
+  background:rgba(255,252,247,.92);
+  border-color:rgba(210,194,176,.35);
+}
+
+.cartItemRemove{
+  background:rgba(255,252,247,.95);
+}
+
+.checkoutModalBackdrop{
+  background:rgba(241,234,221,.82);
+}
+
+.checkoutModalDialog{
+  background:#fdf9f2;
+  border-color:rgba(210,195,176,.35);
+}
+
+.checkoutMain,
+.checkoutSummaryPanel,
+.paymentPanel,
+.checkoutResultCard{
+  background:rgba(255,252,247,.95);
+}
+
+.paymentMethodButton{
+  background:rgba(255,252,247,.95);
+  border-color:rgba(205,191,173,.36);
+  color:#3d372f;
+}
+
+.paymentMethodButton.is-active{
+  background:linear-gradient(135deg,rgba(231,221,205,.9),rgba(216,203,183,.9));
+}
+
+.paymentMethodHint{
+  color:#6c645c;
+}
+
+.paymentActionBar{
+  background:rgba(255,252,247,.94);
+  border-color:rgba(210,195,176,.35);
+}
+
+.accountModal{
+  background:rgba(249,245,238,.95);
+}
+
+.accountModalDialog{
+  background:#fffbf5;
+  border-color:rgba(205,191,173,.35);
+}
+
+.accountModeButton{
+  background:rgba(255,252,247,.95);
+  border-color:rgba(205,191,173,.36);
+  color:#3d372f;
+}
+
+.accountModeButton.is-active{
+  background:#e8dfd3;
+  color:#2d281e;
+}
+
+.accountModalStatus{
+  background:rgba(251,246,239,.9);
+  border-color:rgba(205,191,173,.35);
+}
+
+.accountSummary{
+  background:rgba(255,252,247,.92);
+  border-color:rgba(205,191,173,.35);
+}
+
+@media(max-width:1180px){
+  .hero{
+    grid-template-columns:1fr;
+  }
+}
+
+@media(max-width:900px){
+  .hero{
+    gap:24px;
+  }
+}
+
+@media(max-width:760px){
+  .contact,
+  .atelier{
+    gap:24px;
+  }
+}
+
+@media(max-width:560px){
+  .nav{
+    padding:16px 0 12px;
+  }
+}
