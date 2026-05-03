@@ -8,6 +8,7 @@ import {
   fetchMolliePayment,
   mapMollieStatus,
 } from "../_shared/mollie.ts";
+import { getCorsHeaders, jsonResponse } from "../_shared/cors.ts";
 import { createSupabaseAdminClient } from "../_shared/supabase.ts";
 
 function normalizeText(value: unknown) {
@@ -63,15 +64,21 @@ async function resolveOrderId(
 }
 
 Deno.serve(async (req) => {
+  const corsHeaders = getCorsHeaders();
+
+  if (req.method === "OPTIONS") {
+    return new Response("ok", { status: 200, headers: corsHeaders });
+  }
+
   if (req.method !== "POST") {
-    return new Response("Method not allowed", { status: 405 });
+    return jsonResponse({ error: "Alleen POST is toegestaan." }, { status: 405 });
   }
 
   try {
     const molliePaymentId = await extractWebhookPaymentId(req);
 
     if (!molliePaymentId) {
-      return new Response("Missing payment id", { status: 400 });
+      return jsonResponse({ error: "Missing payment id" }, { status: 400 });
     }
 
     const supabaseAdmin = createSupabaseAdminClient();
@@ -97,11 +104,11 @@ Deno.serve(async (req) => {
       releaseInventory: mapping.releaseInventory,
     });
 
-    return new Response("ok", { status: 200 });
+    return jsonResponse({ ok: true }, { status: 200 });
   } catch (error) {
     console.error("mollie-webhook error", error);
-    return new Response(
-      error instanceof Error ? error.message : "Webhook kon niet verwerkt worden.",
+    return jsonResponse(
+      { error: error instanceof Error ? error.message : "Webhook kon niet verwerkt worden." },
       { status: 500 },
     );
   }

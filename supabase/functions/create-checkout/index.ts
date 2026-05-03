@@ -116,7 +116,6 @@ async function syncOrderWithMollie(supabaseAdmin: ReturnType<typeof createSupaba
 }
 
 async function handleStatusLookup(
-  req: Request,
   supabaseAdmin: ReturnType<typeof createSupabaseAdminClient>,
   body: Record<string, unknown>,
 ) {
@@ -145,14 +144,13 @@ async function handleStatusLookup(
       totalAmount: Number(order.total_amount || 0),
     },
     { status: 200 },
-    req.headers.get("origin"),
   );
 }
 
 async function handleCheckoutCreation(
-  req: Request,
   supabaseAdmin: ReturnType<typeof createSupabaseAdminClient>,
   body: Record<string, unknown>,
+  authorizationHeader: string | null,
 ) {
   const customer = typeof body.customer === "object" && body.customer !== null
     ? body.customer as Record<string, unknown>
@@ -180,7 +178,7 @@ async function handleCheckoutCreation(
     throw new HttpError(400, "Je mandje is leeg.");
   }
 
-  const customerUserId = await getOptionalCustomerUserId(req.headers.get("authorization"));
+  const customerUserId = await getOptionalCustomerUserId(authorizationHeader);
 
   await releaseExpiredReservations(supabaseAdmin);
 
@@ -224,7 +222,6 @@ async function handleCheckoutCreation(
         orderNumber: createdOrder.order_number,
       },
       { status: 200 },
-      req.headers.get("origin"),
     );
   } catch (error) {
     console.error("Checkout-aanmaak mislukt, reservatie wordt vrijgegeven.", error);
@@ -240,17 +237,16 @@ async function handleCheckoutCreation(
 }
 
 Deno.serve(async (req) => {
+  const corsHeaders = getCorsHeaders();
+
   if (req.method === "OPTIONS") {
-    return new Response("ok", {
-      headers: getCorsHeaders(req.headers.get("origin")),
-    });
+    return new Response("ok", { status: 200, headers: corsHeaders });
   }
 
   if (req.method !== "POST") {
     return jsonResponse(
       { error: "Alleen POST is toegestaan." },
       { status: 405 },
-      req.headers.get("origin"),
     );
   }
 
@@ -263,12 +259,17 @@ Deno.serve(async (req) => {
 
     const action = normalizeText((body as Record<string, unknown>).action) || "create";
     const supabaseAdmin = createSupabaseAdminClient();
+    const authorizationHeader = req.headers.get("authorization");
 
     if (action === "status") {
-      return await handleStatusLookup(req, supabaseAdmin, body as Record<string, unknown>);
+      return await handleStatusLookup(supabaseAdmin, body as Record<string, unknown>);
     }
 
-    return await handleCheckoutCreation(req, supabaseAdmin, body as Record<string, unknown>);
+    return await handleCheckoutCreation(
+      supabaseAdmin,
+      body as Record<string, unknown>,
+      authorizationHeader,
+    );
   } catch (error) {
     const message = error instanceof Error ? error.message : "Onbekende fout.";
     const status = error instanceof HttpError ? error.status : 500;
@@ -278,7 +279,6 @@ Deno.serve(async (req) => {
     return jsonResponse(
       { error: message },
       { status },
-      req.headers.get("origin"),
     );
   }
 });
