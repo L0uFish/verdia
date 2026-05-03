@@ -109,7 +109,7 @@ const PAYMENT_METHOD_LABELS = {
   bancontact: "Bancontact",
   visa: "Visa",
   mastercard: "Mastercard",
-  applepay: "Apple Pay",
+  // Apple Pay kan hier opnieuw geactiveerd worden zodra de methode actief staat in het Mollie-profiel.
 };
 
 let cardObserver = null;
