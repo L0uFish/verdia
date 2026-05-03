@@ -2065,51 +2065,27 @@ footer{
   }
 }
 
-.paymentOutcomePanel{
-  display:grid;
-  gap:14px;
+.paymentActionBar{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:16px;
+  padding:18px;
+  border-radius:22px;
+  border:1px solid rgba(234,211,161,.1);
+  background:
+    linear-gradient(135deg, rgba(255,245,232,.05), rgba(214,177,93,.04));
 }
 
-.paymentOutcomeLabel{
-  color:var(--gold2);
-  font-size:.78rem;
-  font-weight:700;
-  letter-spacing:.18em;
-  text-transform:uppercase;
+.paymentActionBar .btn{
+  min-width:220px;
 }
 
-.paymentOutcomeButtons{
-  display:grid;
-  grid-template-columns:repeat(2,minmax(0,1fr));
-  gap:12px;
-}
-
-.paymentOutcomeButton{
-  min-height:48px;
-  padding:0 16px;
-  border-radius:16px;
-  border:1px solid rgba(201,161,93,.12);
-  background:rgba(255,245,232,.03);
+.paymentActionNote{
+  margin:0;
   color:var(--cream);
-  font-weight:700;
-  transition:transform .2s ease,border-color .2s ease,background .2s ease,color .2s ease;
-}
-
-.paymentOutcomeButton:hover{
-  transform:translateY(-1px);
-}
-
-.paymentOutcomeButton.success{
-  border-color:rgba(143,203,155,.22);
-}
-
-.paymentOutcomeButton.decline{
-  border-color:rgba(255,152,152,.22);
-}
-
-.paymentOutcomeButton.cancel,
-.paymentOutcomeButton.expired{
-  border-color:rgba(214,177,93,.18);
+  font-size:.95rem;
+  line-height:1.68;
 }
 
 .checkoutResultCard{
@@ -2403,8 +2379,7 @@ footer{
     grid-template-columns:1fr;
   }
 
-  .paymentMethods,
-  .paymentOutcomeButtons{
+  .paymentMethods{
     grid-template-columns:1fr;
   }
 }
@@ -2509,7 +2484,13 @@ footer{
     flex-direction:column;
   }
 
+  .paymentActionBar{
+    align-items:stretch;
+    flex-direction:column;
+  }
+
   .productModalActions .btn,
+  .paymentActionBar .btn,
   .checkoutFormActions .btn,
   .checkoutResultActions .btn{
     width:100%;

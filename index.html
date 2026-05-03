@@ -6,7 +6,7 @@
   <title>Verdia | Luxe zijden bloemstukken</title>
   <meta name="description" content="Verdia maakt luxueuze, tijdloze zijden bloemstukken in Schilde, Sint-Job-in-'t-Goor en Zoersel." />
   <link rel="icon" type="image/svg+xml" href='data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"%3E%3Crect width="64" height="64" rx="18" fill="%230f0c09"/%3E%3Cpath d="M18 16 30 48 46 16" fill="none" stroke="%23ead3a1" stroke-linecap="round" stroke-linejoin="round" stroke-width="6"/%3E%3C/svg%3E' />
-  <link rel="stylesheet" href="styles.css?v=5.8" />
+  <link rel="stylesheet" href="styles.css?v=6.0" />
 </head>
 <body>
   <div id="demoBanner" class="demoBanner">
@@ -346,7 +346,7 @@
       <div class="checkoutModalHeader">
         <span id="checkoutEyebrow" class="sectionTag">Bestelling</span>
         <h2 id="checkoutTitle">Afrekenen</h2>
-        <p id="checkoutIntro" class="checkoutIntro">Vul je gegevens in voor een realistische demo van de betaal- en afhaalflow.</p>
+        <p id="checkoutIntro" class="checkoutIntro">Vul je gegevens in voor je afhaalbestelling. De betaling verloopt daarna via Mollie test mode.</p>
       </div>
 
       <div class="checkoutLayout">
@@ -387,7 +387,7 @@
               <div class="paymentPanelHeader">
                 <div>
                   <h3>Kies een betaalmethode</h3>
-                  <p>Demo-omgeving. Geen echte betaling, wel een realistische flow.</p>
+                  <p>Je wordt doorgestuurd naar de beveiligde Mollie test checkout.</p>
                 </div>
                 <button type="button" id="checkoutBackToFormButton" class="btn ghost">Gegevens aanpassen</button>
               </div>
@@ -423,7 +423,7 @@
 
               <div id="checkoutPaymentMethods" class="paymentMethods" role="list"></div>
 
-              <p id="checkoutPaymentMethodHint" class="paymentMethodHint">Selecteer een methode en kies daarna een testuitkomst.</p>
+              <p id="checkoutPaymentMethodHint" class="paymentMethodHint">Kies een methode en ga daarna verder naar de beveiligde Mollie test checkout.</p>
 
               <div id="checkoutPaymentPickupNote" class="paymentPickupNote" hidden>
                 <strong>Afhaling op afspraak</strong>
@@ -434,19 +434,14 @@
               <div id="checkoutPaymentProcessing" class="paymentProcessing" hidden>
                 <div class="paymentSpinner" aria-hidden="true"></div>
                 <div>
-                  <strong>Betaling wordt verwerkt...</strong>
-                  <p>We simuleren een premium betaalomgeving voor je demobestelling.</p>
+                  <strong>Betaalpagina wordt voorbereid...</strong>
+                  <p>We maken je bestelling klaar en sturen je daarna door naar Mollie.</p>
                 </div>
               </div>
 
-              <div class="paymentOutcomePanel">
-                <span class="paymentOutcomeLabel">Testuitkomst</span>
-                <div class="paymentOutcomeButtons">
-                  <button type="button" class="paymentOutcomeButton success" data-payment-outcome="success">Betaling geslaagd</button>
-                  <button type="button" class="paymentOutcomeButton decline" data-payment-outcome="declined">Kaart geweigerd</button>
-                  <button type="button" class="paymentOutcomeButton cancel" data-payment-outcome="cancelled">Betaling geannuleerd</button>
-                  <button type="button" class="paymentOutcomeButton expired" data-payment-outcome="expired">Betaling verlopen</button>
-                </div>
+              <div class="paymentActionBar">
+                <p class="paymentActionNote">Mollie draait hier in testmodus. Je bestelling en reservatie worden wel echt in Supabase bijgewerkt.</p>
+                <button type="button" id="checkoutProceedToMollieButton" class="btn primary">Verder naar Mollie</button>
               </div>
             </div>
           </div>
@@ -560,6 +555,6 @@
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="supabase-config.js"></script>
-  <script type="module" src="app.js?v=5.8"></script>
+  <script type="module" src="app.js?v=6.0"></script>
 </body>
 </html>

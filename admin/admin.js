@@ -1,18 +1,22 @@
 import {
+  cancelOrder,
   deleteProduct,
   extractStoragePath,
+  fetchAdminOrders,
   fetchAdminProductsWithImages,
   formatPrice,
   getCurrentSession,
   isCurrentUserAdmin,
+  markOrderFulfilled,
   onAuthStateChange,
+  releaseOrderReservation,
   removeStorageObjects,
   replaceProductImages,
   saveProduct,
   signInAdmin,
   signOutAdmin,
   uploadProductImage,
-} from "../supabase.js?v=2.1";
+} from "../supabase.js?v=3.0";
 
 const MAX_IMAGES = 8;
 const PRODUCT_IMAGE_EXPORT_WIDTH = 1200;
@@ -34,6 +38,10 @@ const loginButton = document.querySelector("#loginButton");
 const logoutButton = document.querySelector("#logoutButton");
 const sessionMeta = document.querySelector("#sessionMeta");
 const sessionEmail = document.querySelector("#sessionEmail");
+const adminTabButtons = Array.from(document.querySelectorAll("[data-admin-tab]"));
+const productsTabPanel = document.querySelector("#productsTabPanel");
+const ordersTabPanel = document.querySelector("#ordersTabPanel");
+const customersTabPanel = document.querySelector("#customersTabPanel");
 
 const productList = document.querySelector("#productList");
 const listStatus = document.querySelector("#listStatus");
@@ -56,6 +64,8 @@ const priceInput = document.querySelector("#priceInput");
 const priceHint = document.querySelector("#priceHint");
 const statusInput = document.querySelector("#statusInput");
 const sortOrderInput = document.querySelector("#sortOrderInput");
+const ordersStatus = document.querySelector("#ordersStatus");
+const ordersList = document.querySelector("#ordersList");
 
 const cropModal = document.querySelector("#cropModal");
 const cropViewport = document.querySelector("#cropViewport");
@@ -69,10 +79,14 @@ const cropRotateButton = document.querySelector("#cropRotateButton");
 const cropMirrorButton = document.querySelector("#cropMirrorButton");
 
 const state = {
+  activeTab: "products",
+  hasLoadedOrders: false,
   products: [],
+  orders: [],
   currentProductId: null,
   images: [],
   removedImagePaths: [],
+  isUpdatingOrder: false,
   isSaving: false,
   hasLoadedProducts: false,
 };
@@ -112,6 +126,24 @@ const PRODUCT_STATUS_LABELS = {
   reserved: "Gereserveerd",
   sold: "Verkocht",
   hidden: "Verborgen",
+};
+
+const ORDER_STATUS_LABELS = {
+  draft: "Concept",
+  reserved: "Gereserveerd",
+  paid: "Betaald",
+  cancelled: "Geannuleerd",
+  expired: "Verlopen",
+  fulfilled: "Afgehaald",
+};
+
+const PAYMENT_STATUS_LABELS = {
+  open: "Open",
+  paid: "Betaald",
+  failed: "Mislukt",
+  expired: "Verlopen",
+  cancelled: "Geannuleerd",
+  pending: "In behandeling",
 };
 
 function createElement(tagName, className, text) {
@@ -186,6 +218,53 @@ function setAdminView(view) {
   sessionMeta.hidden = view !== "admin";
 }
 
+function setOrdersStatus(message, tone = "info") {
+  if (!ordersStatus) {
+    return;
+  }
+
+  ordersStatus.textContent = message;
+  ordersStatus.classList.toggle("is-error", tone === "error");
+}
+
+function normalizeOrderStatus(status) {
+  return Object.prototype.hasOwnProperty.call(ORDER_STATUS_LABELS, status) ? status : "draft";
+}
+
+function normalizePaymentStatus(status) {
+  return Object.prototype.hasOwnProperty.call(PAYMENT_STATUS_LABELS, status) ? status : "open";
+}
+
+function getOrderStatusLabel(status) {
+  return ORDER_STATUS_LABELS[normalizeOrderStatus(status)];
+}
+
+function getPaymentStatusLabel(status) {
+  return PAYMENT_STATUS_LABELS[normalizePaymentStatus(status)];
+}
+
+function setActiveTab(nextTab) {
+  state.activeTab = ["products", "orders", "customers"].includes(nextTab) ? nextTab : "products";
+
+  adminTabButtons.forEach((button) => {
+    const isActive = button.dataset.adminTab === state.activeTab;
+    button.classList.toggle("is-active", isActive);
+    button.setAttribute("aria-selected", String(isActive));
+  });
+
+  if (productsTabPanel) {
+    productsTabPanel.hidden = state.activeTab !== "products";
+  }
+
+  if (ordersTabPanel) {
+    ordersTabPanel.hidden = state.activeTab !== "orders";
+  }
+
+  if (customersTabPanel) {
+    customersTabPanel.hidden = state.activeTab !== "customers";
+  }
+}
+
 function syncAuthControls() {
   const isBusy = authState.isSubmitting || authState.isChecking;
 
@@ -198,18 +277,27 @@ function syncAuthControls() {
 }
 
 function clearAdminState() {
+  state.activeTab = "products";
+  state.orders = [];
   state.products = [];
   state.currentProductId = null;
+  state.hasLoadedOrders = false;
+  state.isUpdatingOrder = false;
   state.hasLoadedProducts = false;
   state.isSaving = false;
   clearCurrentImages();
   productList.replaceChildren();
+  if (ordersList) {
+    ordersList.replaceChildren();
+  }
   setListStatus("");
+  setOrdersStatus("");
   setFormFeedback("", "info");
   setUploadStatus("", "info");
   productForm.reset();
   formTitle.textContent = "Nieuw product";
   loginPasswordInput.value = "";
+  setActiveTab("products");
   renderProductList();
   renderImagePreviewGrid();
 }
@@ -277,6 +365,221 @@ function formatSoldAtLabel(soldAt) {
     month: "2-digit",
     year: "numeric",
   }).format(date);
+}
+
+function formatDateTimeLabel(value) {
+  if (!value) {
+    return "";
+  }
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return "";
+  }
+
+  return new Intl.DateTimeFormat("nl-NL", {
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  }).format(date);
+}
+
+function getOrderById(orderId) {
+  return state.orders.find((order) => order.id === orderId) || null;
+}
+
+function renderOrdersList() {
+  if (!ordersList) {
+    return;
+  }
+
+  ordersList.replaceChildren();
+
+  if (!state.orders.length) {
+    const emptyState = createElement("div", "emptyTile");
+    emptyState.appendChild(createElement("p", "", "Nog geen bestellingen gevonden."));
+    ordersList.appendChild(emptyState);
+    return;
+  }
+
+  const fragment = document.createDocumentFragment();
+
+  state.orders.forEach((order) => {
+    const orderCard = createElement("article", "orderCard");
+    const header = createElement("div", "orderCardHeader");
+    const headerCopy = createElement("div", "orderCardCopy");
+    const headerBadges = createElement("div", "orderBadgeRow");
+    const orderNumber = createElement("strong", "orderNumber", order.order_number);
+    const customer = createElement(
+      "p",
+      "orderCustomerLine",
+      `${order.customer_name} · ${order.customer_email} · ${order.customer_phone}`,
+    );
+    const orderStatusBadge = createElement(
+      "span",
+      `pill is-${normalizeOrderStatus(order.status)}`,
+      getOrderStatusLabel(order.status),
+    );
+    const paymentStatusBadge = createElement(
+      "span",
+      `pill is-payment-${normalizePaymentStatus(order.payment_status)}`,
+      getPaymentStatusLabel(order.payment_status),
+    );
+    const metaGrid = createElement("div", "orderMetaGrid");
+    const productsList = createElement("div", "orderProductsList");
+    const actions = createElement("div", "orderActions");
+    const createdLabel = formatDateTimeLabel(order.created_at) || "-";
+    const paidLabel = formatDateTimeLabel(order.paid_at) || "Nog niet betaald";
+    const reservationLabel = formatDateTimeLabel(order.reservation_expires_at) || "Geen actieve reservatie";
+    const paymentMethod = order.payment_method || "Nog niet gekozen";
+    const pickupNote = order.pickup_note || "Geen pickup-opmerking opgegeven.";
+
+    headerCopy.append(orderNumber, customer);
+    headerBadges.append(orderStatusBadge, paymentStatusBadge);
+    header.append(headerCopy, headerBadges);
+
+    [
+      ["Aangemaakt", createdLabel],
+      ["Totaal", `€ ${order.total_amount.toFixed(2)}`],
+      ["Betaalmethode", paymentMethod],
+      ["Betaald op", paidLabel],
+      ["Reservatie tot", reservationLabel],
+      ["Pickup-opmerking", pickupNote],
+    ].forEach(([label, value]) => {
+      const block = createElement("div", "orderMetaBlock");
+      block.appendChild(createElement("span", "orderMetaLabel", label));
+      block.appendChild(createElement("strong", "", value));
+      metaGrid.appendChild(block);
+    });
+
+    order.order_items.forEach((item) => {
+      const productRow = createElement("div", "orderProductRow");
+      const productName = createElement("strong", "", item.product_name);
+      const productPrice = createElement("span", "", `€ ${item.product_price.toFixed(2)}`);
+
+      productRow.append(productName, productPrice);
+      productsList.appendChild(productRow);
+    });
+
+    if (order.status === "paid") {
+      const fulfillButton = createElement("button", "btn ghost orderActionButton", "Markeer als afgehaald");
+      fulfillButton.type = "button";
+      fulfillButton.disabled = state.isUpdatingOrder || !authState.isAdmin;
+      fulfillButton.dataset.orderAction = "fulfill";
+      fulfillButton.dataset.orderId = order.id;
+      actions.appendChild(fulfillButton);
+    }
+
+    if (["draft", "reserved"].includes(order.status)) {
+      const cancelButton = createElement("button", "btn danger orderActionButton", "Annuleer order");
+      const releaseButton = createElement("button", "btn ghost orderActionButton", "Geef reservatie vrij");
+
+      cancelButton.type = "button";
+      releaseButton.type = "button";
+      cancelButton.disabled = state.isUpdatingOrder || !authState.isAdmin;
+      releaseButton.disabled = state.isUpdatingOrder || !authState.isAdmin;
+      cancelButton.dataset.orderAction = "cancel";
+      releaseButton.dataset.orderAction = "release";
+      cancelButton.dataset.orderId = order.id;
+      releaseButton.dataset.orderId = order.id;
+
+      actions.append(cancelButton, releaseButton);
+    }
+
+    orderCard.append(header, metaGrid, productsList);
+
+    if (actions.childElementCount) {
+      orderCard.appendChild(actions);
+    }
+
+    fragment.appendChild(orderCard);
+  });
+
+  ordersList.appendChild(fragment);
+}
+
+async function loadOrders() {
+  if (!authState.isAdmin) {
+    return;
+  }
+
+  setOrdersStatus("Bestellingen laden...");
+
+  try {
+    state.orders = await fetchAdminOrders();
+    state.hasLoadedOrders = true;
+    renderOrdersList();
+    setOrdersStatus(state.orders.length ? `${state.orders.length} bestelling(en) geladen.` : "Nog geen bestellingen.");
+  } catch (error) {
+    setOrdersStatus(error.message || "Bestellingen konden niet geladen worden.", "error");
+    throw error;
+  }
+}
+
+async function ensureOrdersLoaded() {
+  if (state.hasLoadedOrders) {
+    return;
+  }
+
+  await loadOrders();
+}
+
+async function handleOrderAction(orderId, action) {
+  if (!orderId || !["fulfill", "cancel", "release"].includes(action)) {
+    return;
+  }
+
+  const order = getOrderById(orderId);
+
+  if (!order || state.isUpdatingOrder || !authState.isAdmin) {
+    return;
+  }
+
+  const actionLabels = {
+    cancel: "annuleren",
+    fulfill: "als afgehaald markeren",
+    release: "vrijgeven",
+  };
+  const confirmed = window.confirm(
+    `Weet je zeker dat je bestelling ${order.order_number} wilt ${actionLabels[action]}?`,
+  );
+
+  if (!confirmed) {
+    return;
+  }
+
+  state.isUpdatingOrder = true;
+  syncControls();
+  setOrdersStatus(`Bestelling ${order.order_number} wordt bijgewerkt...`);
+
+  try {
+    if (action === "fulfill") {
+      await markOrderFulfilled(orderId);
+    }
+
+    if (action === "cancel") {
+      await cancelOrder(orderId);
+    }
+
+    if (action === "release") {
+      await releaseOrderReservation(orderId);
+    }
+
+    await Promise.all([
+      loadOrders(),
+      loadProducts(state.currentProductId),
+    ]);
+    setOrdersStatus(`Bestelling ${order.order_number} is bijgewerkt.`);
+  } catch (error) {
+    setOrdersStatus(error.message || "Bestelling kon niet bijgewerkt worden.", "error");
+  } finally {
+    state.isUpdatingOrder = false;
+    syncControls();
+    renderOrdersList();
+  }
 }
 
 function resetForm() {
@@ -426,9 +729,14 @@ function renderImagePreviewGrid() {
 
 function syncControls() {
   const isEditorLocked = state.isSaving || !authState.isAdmin;
+  const isOrderActionLocked = state.isUpdatingOrder || !authState.isAdmin;
   const priceOnRequest = priceLabelInput.value === "op_aanvraag";
   const hasSavedProduct = Boolean(state.currentProductId);
   const limitReached = state.images.length >= MAX_IMAGES;
+
+  adminTabButtons.forEach((button) => {
+    button.disabled = !authState.isAdmin || state.isSaving || state.isUpdatingOrder;
+  });
 
   nameInput.disabled = isEditorLocked;
   descriptionInput.disabled = isEditorLocked;
@@ -450,6 +758,10 @@ function syncControls() {
   priceHint.textContent = priceOnRequest
     ? "De prijs wordt niet gebruikt. Op de site verschijnt 'Prijs op aanvraag'."
     : "Deze prijs verschijnt op de site als 'Vanaf EUR ...'.";
+
+  document.querySelectorAll("[data-order-action]").forEach((button) => {
+    button.disabled = isOrderActionLocked;
+  });
 }
 
 function moveImage(imageId, direction) {
@@ -1280,6 +1592,37 @@ imagePreviewGrid.addEventListener("click", (event) => {
     removeImage(imageId);
   }
 });
+
+adminTabButtons.forEach((button) => {
+  button.addEventListener("click", async () => {
+    if (!authState.isAdmin) {
+      return;
+    }
+
+    const nextTab = button.dataset.adminTab || "products";
+    setActiveTab(nextTab);
+
+    if (nextTab === "orders") {
+      try {
+        await ensureOrdersLoaded();
+      } catch (error) {
+        console.error(error);
+      }
+    }
+  });
+});
+
+if (ordersList) {
+  ordersList.addEventListener("click", (event) => {
+    const button = event.target.closest("[data-order-action]");
+
+    if (!button) {
+      return;
+    }
+
+    handleOrderAction(button.dataset.orderId, button.dataset.orderAction);
+  });
+}
 
 priceLabelInput.addEventListener("change", () => {
   if (priceLabelInput.value === "op_aanvraag") {

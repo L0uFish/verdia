@@ -1,12 +1,14 @@
 import {
+  createCheckoutSession,
   fetchProductsWithImages,
+  fetchCheckoutStatus,
   formatPrice,
   getCurrentSession,
   onAuthStateChange,
   signInWithEmailPassword,
   signOutCurrentUser,
   signUpWithEmailPassword,
-} from "./supabase.js?v=2.2";
+} from "./supabase.js?v=3.0";
 
 const productGrid = document.querySelector("#productGrid");
 const productStatus = document.querySelector("#productStatus");
@@ -85,6 +87,7 @@ const checkoutPaymentProcessing = document.querySelector("#checkoutPaymentProces
 const checkoutPaymentMethodHint = document.querySelector("#checkoutPaymentMethodHint");
 const checkoutPaymentPickupNote = document.querySelector("#checkoutPaymentPickupNote");
 const checkoutPaymentSelectedMethod = document.querySelector("#checkoutPaymentSelectedMethod");
+const checkoutProceedToMollieButton = document.querySelector("#checkoutProceedToMollieButton");
 const checkoutSummaryCount = document.querySelector("#checkoutSummaryCount");
 const checkoutSummaryItems = document.querySelector("#checkoutSummaryItems");
 const checkoutSummarySubtotal = document.querySelector("#checkoutSummarySubtotal");
@@ -100,8 +103,8 @@ const storefrontLiveRegion = document.querySelector("#storefrontLiveRegion");
 const CARD_SLIDE_INTERVAL = 3200;
 const CARD_SLIDE_TRANSITION_MS = 820;
 const CART_STORAGE_KEY = "verdia-cart-v1";
+const PENDING_ORDER_STORAGE_KEY = "verdia-pending-order-v1";
 const OVERLAY_CLOSE_DELAY_MS = 280;
-const PAYMENT_PROCESSING_DELAY_MS = 1550;
 const PAYMENT_METHOD_LABELS = {
   bancontact: "Bancontact",
   visa: "Visa",
@@ -111,7 +114,6 @@ const PAYMENT_METHOD_LABELS = {
 
 let cardObserver = null;
 let currentProducts = [];
-let paymentProcessingTimer = 0;
 
 const modalState = {
   product: null,
@@ -180,6 +182,7 @@ function createSlideImage(source, alt, className = "") {
 
 function createEmptyCheckoutState() {
   return {
+    orderId: "",
     step: "form",
     form: {
       name: "",
@@ -227,6 +230,64 @@ function loadCartFromStorage() {
       .filter(Boolean);
   } catch (error) {
     return [];
+  }
+}
+
+function loadPendingOrderFromStorage() {
+  try {
+    const rawValue = window.localStorage.getItem(PENDING_ORDER_STORAGE_KEY);
+
+    if (!rawValue) {
+      return null;
+    }
+
+    const parsedValue = JSON.parse(rawValue);
+
+    if (!parsedValue || typeof parsedValue !== "object" || !parsedValue.orderId) {
+      return null;
+    }
+
+    return {
+      cartItems: Array.isArray(parsedValue.cartItems)
+        ? parsedValue.cartItems.filter((item) => item && typeof item === "object" && item.id)
+        : [],
+      createdAt: parsedValue.createdAt || "",
+      customer: parsedValue.customer && typeof parsedValue.customer === "object"
+        ? {
+          email: parsedValue.customer.email ? String(parsedValue.customer.email) : "",
+          name: parsedValue.customer.name ? String(parsedValue.customer.name) : "",
+          note: parsedValue.customer.note ? String(parsedValue.customer.note) : "",
+          phone: parsedValue.customer.phone ? String(parsedValue.customer.phone) : "",
+        }
+        : {
+          email: "",
+          name: "",
+          note: "",
+          phone: "",
+        },
+      orderId: String(parsedValue.orderId),
+      paymentMethod: parsedValue.paymentMethod && PAYMENT_METHOD_LABELS[parsedValue.paymentMethod]
+        ? parsedValue.paymentMethod
+        : "bancontact",
+    };
+  } catch (error) {
+    return null;
+  }
+}
+
+function savePendingOrderToStorage(order) {
+  try {
+    window.localStorage.setItem(PENDING_ORDER_STORAGE_KEY, JSON.stringify(order));
+  } catch (error) {
+    console.warn("Openstaande bestelling kon niet lokaal opgeslagen worden.", error);
+  }
+}
+
+function clearPendingOrderFromStorage() {
+  try {
+    window.localStorage.removeItem(PENDING_ORDER_STORAGE_KEY);
+  } catch (error) {
+    console.warn("Openstaande bestelling kon niet lokaal verwijderd worden.", error);
   }
 }
 
@@ -884,6 +945,17 @@ function getCartSubtotal(items = storefrontState.cartItems) {
   return items.reduce((sum, item) => sum + (Number(item.price) || 0), 0);
 }
 
+function removeCartItemsById(productIds) {
+  const productIdSet = new Set(productIds.filter(Boolean));
+
+  if (!productIdSet.size) {
+    return;
+  }
+
+  storefrontState.cartItems = storefrontState.cartItems.filter((item) => !productIdSet.has(item.id));
+  saveCartToStorage();
+}
+
 function sortRecentSoldProducts(products) {
   return products.slice().sort((left, right) => {
     const leftTime = left.sold_at ? new Date(left.sold_at).getTime() : 0;
@@ -895,34 +967,6 @@ function sortRecentSoldProducts(products) {
 
     return (right.sort_order || 0) - (left.sort_order || 0);
   });
-}
-
-function markProductsAsSoldLocally(items) {
-  const soldProductIds = new Set(items.map((item) => item?.id).filter(Boolean));
-
-  if (!soldProductIds.size) {
-    return;
-  }
-
-  const soldAt = new Date().toISOString();
-
-  currentProducts = currentProducts.map((product) => {
-    if (!soldProductIds.has(product.id)) {
-      return product;
-    }
-
-    return {
-      ...product,
-      status: "sold",
-      sold_at: product.sold_at || soldAt,
-    };
-  });
-
-  syncStorefrontProductBuckets(currentProducts);
-
-  if (modalState.product && soldProductIds.has(modalState.product.id)) {
-    modalState.product = getProductById(modalState.product.id);
-  }
 }
 
 function getProductAvailabilityMeta(product, options = {}) {
@@ -968,7 +1012,7 @@ function getProductAvailabilityMeta(product, options = {}) {
     return {
       badgeLabel: "Beschikbaar",
       badgeTone: "available",
-      note: "Dit stuk zit al in je mandje en wacht op je demobestelling.",
+      note: "Dit stuk zit al in je mandje en wacht op je afhaalbestelling.",
       primaryLabel: "In mandje",
       primaryAction: "none",
       primaryDisabled: true,
@@ -1728,13 +1772,6 @@ function removeProductFromCart(productId) {
   }
 }
 
-function createFakeOrderNumber() {
-  const now = new Date();
-  const datePart = `${now.getUTCFullYear()}${String(now.getUTCMonth() + 1).padStart(2, "0")}${String(now.getUTCDate()).padStart(2, "0")}`;
-  const randomPart = Math.floor(1000 + Math.random() * 9000);
-  return `VD-${datePart}-${randomPart}`;
-}
-
 function focusCheckoutTarget() {
   if (!checkoutModal || checkoutModal.hidden) {
     return;
@@ -1830,11 +1867,10 @@ function renderPaymentMethods() {
       `paymentMethodButton ${storefrontState.checkout.paymentMethod === methodKey ? "is-active" : ""}`.trim(),
     );
     const brand = createElement("span", "paymentMethodBrand", label);
-    const description = createElement(
-      "span",
-      "",
-      methodKey === "applepay" ? "Snelle mobiele bevestiging" : "Simuleer een vertrouwde betaalstap",
-    );
+    const descriptionText = methodKey === "bancontact"
+      ? "Belgische betaling via Mollie test checkout"
+      : (methodKey === "applepay" ? "Walletbetaling via Mollie test checkout" : "Kaartbetaling via Mollie test checkout");
+    const description = createElement("span", "", descriptionText);
 
     button.type = "button";
     button.disabled = storefrontState.checkout.isProcessing;
@@ -1922,11 +1958,11 @@ function renderCheckoutResult() {
   ].filter(Boolean).join(" · ");
 
   let badgeClass = "is-warning";
-  let badgeLabel = "Demo";
+  let badgeLabel = "In behandeling";
   let heading = "Bestelling bijgewerkt";
   let message = "";
-  let primaryLabel = "Terug naar collectie";
-  let primaryAction = "close-collection";
+  let primaryLabel = "Status vernieuwen";
+  let primaryAction = "refresh-status";
   let secondaryLabel = "";
   let secondaryAction = "";
 
@@ -1934,36 +1970,41 @@ function renderCheckoutResult() {
     badgeClass = "is-success";
     badgeLabel = "Betaald";
     heading = "Bedankt voor je bestelling";
-    message = "Je demo-betaling is geslaagd. Na betaling nemen we contact op om het afhaalmoment af te spreken. Demo: deze bestelling werd niet echt verwerkt.";
+    message = "Je betaling is bevestigd in testmodus. Na betaling nemen we contact op om het afhaalmoment af te spreken.";
     primaryLabel = "Terug naar collectie";
     primaryAction = "close-collection";
-  } else if (outcome === "declined") {
+  } else if (outcome === "failed") {
     badgeClass = "is-error";
-    badgeLabel = "Geweigerd";
-    heading = "Kaart geweigerd";
-    message = "De demo-betaling werd geweigerd. Je kan meteen opnieuw proberen met dezelfde bestelgegevens.";
-    primaryLabel = "Opnieuw proberen";
-    primaryAction = "retry-payment";
-    secondaryLabel = "Terug naar mandje";
-    secondaryAction = "back-to-cart";
+    badgeLabel = "Niet geslaagd";
+    heading = "Betaling niet bevestigd";
+    message = "De betaling werd niet bevestigd. Als het stuk nog beschikbaar is, kan je opnieuw afrekenen vanuit je mandje.";
+    primaryLabel = "Terug naar mandje";
+    primaryAction = "back-to-cart";
+    secondaryLabel = "Terug naar collectie";
+    secondaryAction = "close-collection";
   } else if (outcome === "cancelled") {
     badgeClass = "is-warning";
     badgeLabel = "Geannuleerd";
     heading = "Betaling geannuleerd";
-    message = "Je demo-betaling werd afgebroken. Keer terug naar betalen of pas eerst je selectie aan.";
-    primaryLabel = "Terug naar betaling";
-    primaryAction = "back-to-payment";
-    secondaryLabel = "Terug naar mandje";
-    secondaryAction = "back-to-cart";
+    message = "Je betaling werd afgebroken. Als het stuk nog beschikbaar is, kan je later opnieuw proberen vanuit je mandje.";
+    primaryLabel = "Terug naar mandje";
+    primaryAction = "back-to-cart";
+    secondaryLabel = "Terug naar collectie";
+    secondaryAction = "close-collection";
   } else if (outcome === "expired") {
     badgeClass = "is-warning";
     badgeLabel = "Verlopen";
     heading = "Betaalsessie verlopen";
-    message = "De demo-betaalsessie is verlopen. Je kan meteen een nieuwe poging starten.";
-    primaryLabel = "Opnieuw proberen";
-    primaryAction = "retry-payment";
-    secondaryLabel = "Terug naar mandje";
-    secondaryAction = "back-to-cart";
+    message = "De reservering of betaalsessie is verlopen. Als het stuk nog beschikbaar is, kan je opnieuw afrekenen.";
+    primaryLabel = "Terug naar mandje";
+    primaryAction = "back-to-cart";
+    secondaryLabel = "Terug naar collectie";
+    secondaryAction = "close-collection";
+  } else if (outcome === "pending") {
+    badgeClass = "is-warning";
+    badgeLabel = "In behandeling";
+    heading = "Betaling wordt nog gecontroleerd";
+    message = "Mollie heeft nog geen definitieve betaalstatus teruggegeven. Vernieuw de status binnen enkele ogenblikken.";
   }
 
   checkoutResultBadge.className = `checkoutResultBadge ${badgeClass}`;
@@ -2030,9 +2071,12 @@ function renderCheckoutStep() {
     checkoutCloseButton.disabled = isProcessing;
   }
 
-  document.querySelectorAll("[data-payment-outcome]").forEach((button) => {
-    button.disabled = isProcessing;
-  });
+  if (checkoutProceedToMollieButton) {
+    checkoutProceedToMollieButton.disabled = isProcessing || !items.length;
+    checkoutProceedToMollieButton.textContent = isProcessing
+      ? "Betaalpagina voorbereiden..."
+      : "Verder naar Mollie";
+  }
 
   if (checkoutPaymentProcessing) {
     checkoutPaymentProcessing.hidden = !isProcessing;
@@ -2041,8 +2085,8 @@ function renderCheckoutStep() {
   if (checkoutPaymentMethodHint) {
     const methodLabel = PAYMENT_METHOD_LABELS[storefrontState.checkout.paymentMethod] || "betaalmethode";
     checkoutPaymentMethodHint.textContent = isProcessing
-      ? `We verwerken je ${methodLabel}-betaling in deze demo.`
-      : `Je kiest voor ${methodLabel}. Selecteer hieronder de gewenste testuitkomst.`;
+      ? `Je ${methodLabel}-betaling wordt klaargezet bij Mollie.`
+      : `Je kiest voor ${methodLabel}. Je wordt zo doorgestuurd naar de beveiligde Mollie test checkout.`;
   }
 
   renderCheckoutCustomerSummary();
@@ -2053,20 +2097,20 @@ function renderCheckoutStep() {
     setCheckoutHeaderCopy(
       "Bestelling",
       "Afrekenen",
-      "Vul je gegevens in voor een realistische demo van de betaal- en afhaalflow.",
+      "Vul je gegevens in voor je afhaalbestelling. De betaling verloopt daarna via Mollie test mode.",
     );
   } else if (step === "payment") {
     setCheckoutHeaderCopy(
       "Betaling",
-      "Betaling simuleren",
-      "Kies een betaalmethode en simuleer daarna de uitkomst van de betaling.",
+      "Betalen via Mollie",
+      "Kies je betaalmethode. Daarna sturen we je door naar de beveiligde Mollie test checkout.",
     );
     renderPaymentMethods();
   } else {
     setCheckoutHeaderCopy(
       "Betaling",
       "Betalingsresultaat",
-      "De uitkomst hieronder is gesimuleerd en schrijft nog niets weg naar de database.",
+      "We hebben de actuele betaalstatus van je bestelling opgehaald.",
     );
     renderCheckoutResult();
   }
@@ -2084,10 +2128,36 @@ function prepareCheckoutFromCart() {
       phone: previousForm.phone || "",
       note: previousForm.note || "",
     },
-    orderNumber: createFakeOrderNumber(),
     paymentMethod: storefrontState.checkout.paymentMethod || "bancontact",
     itemsSnapshot: storefrontState.cartItems.map((item) => ({ ...item })),
   };
+}
+
+function showCheckoutModal() {
+  if (!checkoutModal) {
+    return;
+  }
+
+  if (!checkoutModal.hidden) {
+    renderCheckoutStep();
+    window.requestAnimationFrame(focusCheckoutTarget);
+    return;
+  }
+
+  window.clearTimeout(storefrontState.checkoutCloseTimer);
+  storefrontState.checkoutLastFocusedElement = document.activeElement instanceof HTMLElement
+    ? document.activeElement
+    : null;
+
+  closeCartDrawer({ restoreFocus: false });
+  checkoutModal.hidden = false;
+  checkoutModal.dataset.open = "false";
+  syncBodyModalState();
+
+  window.requestAnimationFrame(() => {
+    checkoutModal.dataset.open = "true";
+    focusCheckoutTarget();
+  });
 }
 
 function openCheckoutModal() {
@@ -2104,21 +2174,7 @@ function openCheckoutModal() {
   prepareCheckoutFromCart();
   setCheckoutStatus("", "info");
   renderCheckoutStep();
-
-  window.clearTimeout(storefrontState.checkoutCloseTimer);
-  storefrontState.checkoutLastFocusedElement = document.activeElement instanceof HTMLElement
-    ? document.activeElement
-    : null;
-
-  closeCartDrawer({ restoreFocus: false });
-  checkoutModal.hidden = false;
-  checkoutModal.dataset.open = "false";
-  syncBodyModalState();
-
-  window.requestAnimationFrame(() => {
-    checkoutModal.dataset.open = "true";
-    focusCheckoutTarget();
-  });
+  showCheckoutModal();
 }
 
 function closeCheckoutModal({ restoreFocus = true, resetState = true } = {}) {
@@ -2206,54 +2262,195 @@ function handleCheckoutSubmit(event) {
   window.requestAnimationFrame(focusCheckoutTarget);
 }
 
-function completePaymentOutcome(outcome) {
-  const purchasedItems = getCheckoutItemsSnapshot().map((item) => ({ ...item }));
-
-  storefrontState.checkout.isProcessing = false;
-  storefrontState.checkout.result = outcome;
-  storefrontState.checkout.step = "result";
-
-  if (outcome === "success") {
-    markProductsAsSoldLocally(purchasedItems);
-    storefrontState.cartItems = [];
-    saveCartToStorage();
-    renderStorefrontSections();
-    syncStorefrontSectionStatus();
-    setCartStatus("Je selectie werd lokaal verwerkt en je mandje is leeggemaakt.", "success");
-    announceLiveMessage("Demo-betaling geslaagd. Je selectie staat nu lokaal als verkocht.");
-  } else {
-    renderCart();
-  }
-
-  setCheckoutStatus("", "info");
-  renderCheckoutStep();
-  window.requestAnimationFrame(focusCheckoutTarget);
+function createPendingOrderSnapshot(orderId, orderNumber = "") {
+  return {
+    cartItems: getCheckoutItemsSnapshot().map((item) => ({ ...item })),
+    createdAt: new Date().toISOString(),
+    customer: {
+      email: storefrontState.checkout.form.email,
+      name: storefrontState.checkout.form.name,
+      note: storefrontState.checkout.form.note,
+      phone: storefrontState.checkout.form.phone,
+    },
+    orderId,
+    orderNumber,
+    paymentMethod: storefrontState.checkout.paymentMethod,
+  };
 }
 
-function simulatePaymentOutcome(outcome) {
-  if (storefrontState.checkout.isProcessing) {
-    return;
+function getCheckoutResultFromStatus(orderStatus, paymentStatus) {
+  if (paymentStatus === "paid" || orderStatus === "paid" || orderStatus === "fulfilled") {
+    return "success";
+  }
+
+  if (paymentStatus === "failed") {
+    return "failed";
+  }
+
+  if (paymentStatus === "cancelled" || orderStatus === "cancelled") {
+    return "cancelled";
+  }
+
+  if (paymentStatus === "expired" || orderStatus === "expired") {
+    return "expired";
+  }
+
+  return "pending";
+}
+
+function applyCheckoutResultState(statusPayload, pendingOrder) {
+  const result = getCheckoutResultFromStatus(statusPayload.orderStatus, statusPayload.paymentStatus);
+
+  storefrontState.checkout = {
+    ...createEmptyCheckoutState(),
+    form: {
+      name: pendingOrder?.customer?.name || "",
+      email: pendingOrder?.customer?.email || "",
+      phone: pendingOrder?.customer?.phone || "",
+      note: pendingOrder?.customer?.note || "",
+    },
+    isProcessing: false,
+    itemsSnapshot: pendingOrder?.cartItems?.length
+      ? pendingOrder.cartItems.map((item) => ({ ...item }))
+      : [],
+    orderId: statusPayload.orderId || pendingOrder?.orderId || "",
+    orderNumber: statusPayload.orderNumber || pendingOrder?.orderNumber || "",
+    paymentMethod: pendingOrder?.paymentMethod || storefrontState.checkout.paymentMethod || "bancontact",
+    result,
+    step: "result",
+  };
+
+  return result;
+}
+
+async function syncPendingOrderResult(pendingOrder, options = {}) {
+  const {
+    announce = true,
+    keepModalOpen = true,
+  } = options;
+
+  if (!pendingOrder?.orderId) {
+    throw new Error("Er is geen openstaande bestelling om te controleren.");
   }
 
   storefrontState.checkout.isProcessing = true;
   renderCheckoutStep();
 
-  window.clearTimeout(paymentProcessingTimer);
-  paymentProcessingTimer = window.setTimeout(() => {
-    paymentProcessingTimer = 0;
-    completePaymentOutcome(outcome);
-  }, PAYMENT_PROCESSING_DELAY_MS);
+  const statusPayload = await fetchCheckoutStatus(pendingOrder.orderId);
+  const orderedProductIds = Array.isArray(statusPayload.items)
+    ? statusPayload.items.map((item) => item.productId).filter(Boolean)
+    : pendingOrder.cartItems.map((item) => item.id).filter(Boolean);
+  const result = applyCheckoutResultState(statusPayload, pendingOrder);
+
+  await loadProducts();
+
+  if (result === "success") {
+    removeCartItemsById(orderedProductIds);
+    clearPendingOrderFromStorage();
+    setCartStatus("Je betaling is bevestigd. Je selectie werd uit je mandje gehaald.", "success");
+
+    if (announce) {
+      announceLiveMessage("Je betaling is bevestigd en de collectie werd vernieuwd.");
+    }
+  } else if (result === "failed") {
+    clearPendingOrderFromStorage();
+    setCartStatus("De betaling werd niet bevestigd. Je selectie blijft in je mandje zolang ze beschikbaar is.", "error");
+  } else if (result === "cancelled") {
+    clearPendingOrderFromStorage();
+    setCartStatus("De betaling werd geannuleerd. Je selectie blijft in je mandje zolang ze beschikbaar is.", "info");
+  } else if (result === "expired") {
+    clearPendingOrderFromStorage();
+    setCartStatus("De reservatie is verlopen. Controleer je mandje en probeer opnieuw als de stukken nog beschikbaar zijn.", "error");
+  } else {
+    savePendingOrderToStorage({
+      ...pendingOrder,
+      orderNumber: statusPayload.orderNumber || pendingOrder.orderNumber || "",
+    });
+    setCartStatus("De betaling wordt nog gecontroleerd. Vernieuw de status binnen enkele ogenblikken.", "info");
+  }
+
+  setCheckoutStatus("", "info");
+  renderCart();
+  renderCheckoutStep();
+
+  if (keepModalOpen) {
+    showCheckoutModal();
+  }
+
+  return result;
 }
 
-function handleCheckoutResultPrimaryAction() {
-  const action = checkoutResultPrimaryButton?.dataset.action || "";
+async function startCheckoutRedirect() {
+  if (storefrontState.checkout.isProcessing) {
+    return;
+  }
 
-  if (action === "retry-payment" || action === "back-to-payment") {
+  const items = getCheckoutItemsSnapshot();
+
+  if (!items.length) {
+    setCheckoutStatus("Je mandje is leeg.", "error");
+    return;
+  }
+
+  storefrontState.checkout.isProcessing = true;
+  setCheckoutStatus("", "info");
+  renderCheckoutStep();
+
+  try {
+    const response = await createCheckoutSession({
+      action: "create",
+      cartItems: items.map((item) => ({ id: item.id })),
+      customer: {
+        email: storefrontState.checkout.form.email,
+        name: storefrontState.checkout.form.name,
+        note: storefrontState.checkout.form.note,
+        phone: storefrontState.checkout.form.phone,
+      },
+      paymentMethod: storefrontState.checkout.paymentMethod,
+      pickupNote: storefrontState.checkout.form.note,
+    });
+
+    if (!response?.checkoutUrl || !response?.orderId) {
+      throw new Error("De betaalpagina kon niet voorbereid worden.");
+    }
+
+    storefrontState.checkout.orderId = response.orderId;
+    storefrontState.checkout.orderNumber = response.orderNumber || "";
+
+    savePendingOrderToStorage(
+      createPendingOrderSnapshot(response.orderId, response.orderNumber || ""),
+    );
+
+    window.location.assign(response.checkoutUrl);
+  } catch (error) {
+    storefrontState.checkout.isProcessing = false;
+    await loadProducts();
+    setCheckoutStatus(error.message || "De betaalpagina kon niet voorbereid worden.", "error");
+    renderCheckoutStep();
+  }
+}
+
+async function handleCheckoutResultAction(action) {
+  if (action === "refresh-status") {
+    const pendingOrder = loadPendingOrderFromStorage();
+
+    try {
+      await syncPendingOrderResult(pendingOrder, { announce: false, keepModalOpen: true });
+    } catch (error) {
+      storefrontState.checkout.isProcessing = false;
+      setCheckoutStatus(error.message || "De betaalstatus kon niet vernieuwd worden.", "error");
+      renderCheckoutStep();
+    }
+    return;
+  }
+
+  if (action === "back-to-cart") {
     storefrontState.checkout.result = null;
-    storefrontState.checkout.step = "payment";
+    storefrontState.checkout.step = "form";
     setCheckoutStatus("", "info");
     renderCheckoutStep();
-    window.requestAnimationFrame(focusCheckoutTarget);
+    closeCheckoutModal({ restoreFocus: false, resetState: false });
+    window.setTimeout(openCartDrawer, OVERLAY_CLOSE_DELAY_MS);
     return;
   }
 
@@ -2266,19 +2463,48 @@ function handleCheckoutResultPrimaryAction() {
   }, OVERLAY_CLOSE_DELAY_MS);
 }
 
-function handleCheckoutResultSecondaryAction() {
-  const action = checkoutResultSecondaryButton?.dataset.action || "";
+function handleCheckoutResultPrimaryAction() {
+  handleCheckoutResultAction(checkoutResultPrimaryButton?.dataset.action || "");
+}
 
-  if (action !== "back-to-cart") {
+function handleCheckoutResultSecondaryAction() {
+  handleCheckoutResultAction(checkoutResultSecondaryButton?.dataset.action || "");
+}
+
+function clearPaymentReturnQuery() {
+  const url = new URL(window.location.href);
+
+  if (!url.searchParams.has("payment")) {
     return;
   }
 
-  storefrontState.checkout.result = null;
-  storefrontState.checkout.step = "form";
-  setCheckoutStatus("", "info");
-  renderCheckoutStep();
-  closeCheckoutModal({ restoreFocus: false, resetState: false });
-  window.setTimeout(openCartDrawer, OVERLAY_CLOSE_DELAY_MS);
+  url.searchParams.delete("payment");
+  window.history.replaceState({}, "", url);
+}
+
+async function handlePaymentReturnFromMollie() {
+  const url = new URL(window.location.href);
+  const paymentFlag = url.searchParams.get("payment");
+  const pendingOrder = loadPendingOrderFromStorage();
+
+  if (!paymentFlag || !pendingOrder?.orderId) {
+    if (paymentFlag) {
+      clearPaymentReturnQuery();
+    }
+    return;
+  }
+
+  try {
+    await syncPendingOrderResult(pendingOrder, {
+      announce: true,
+      keepModalOpen: true,
+    });
+  } catch (error) {
+    console.error(error);
+    setCartStatus(error.message || "De betaalstatus kon niet gecontroleerd worden.", "error");
+  } finally {
+    clearPaymentReturnQuery();
+  }
 }
 
 async function loadProducts() {
@@ -2437,11 +2663,9 @@ if (checkoutBackToFormButton) {
   });
 }
 
-document.querySelectorAll("[data-payment-outcome]").forEach((button) => {
-  button.addEventListener("click", () => {
-    simulatePaymentOutcome(button.dataset.paymentOutcome);
-  });
-});
+if (checkoutProceedToMollieButton) {
+  checkoutProceedToMollieButton.addEventListener("click", startCheckoutRedirect);
+}
 
 if (checkoutResultPrimaryButton) {
   checkoutResultPrimaryButton.addEventListener("click", handleCheckoutResultPrimaryAction);
@@ -2544,8 +2768,17 @@ window.addEventListener("keydown", (event) => {
   }
 });
 
-renderCart();
-renderCheckoutStep();
-loadProducts();
-initializePublicAuth();
-initializeSpotlight();
+async function initializeStorefront() {
+  renderCart();
+  renderCheckoutStep();
+  initializeSpotlight();
+  await initializePublicAuth();
+  await loadProducts();
+  await handlePaymentReturnFromMollie();
+}
+
+initializeStorefront().catch((error) => {
+  console.error(error);
+  setProductStatus("De collectie kon niet geladen worden.", "error");
+  setRecentSoldStatus("Recent verkocht kon niet geladen worden.", "error");
+});

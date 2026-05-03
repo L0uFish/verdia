@@ -727,9 +727,220 @@ body.crop-open{
   overflow:hidden;
 }
 
+.adminWorkspace{
+  display:grid;
+  gap:20px;
+}
+
+.adminTabNav{
+  display:flex;
+  flex-wrap:wrap;
+  gap:12px;
+}
+
+.adminTabButton{
+  min-height:44px;
+  padding:0 18px;
+  border-radius:999px;
+  border:1px solid var(--line);
+  background:rgba(255,255,255,.04);
+  color:var(--gold2);
+  transition:transform .2s ease,background .2s ease,border-color .2s ease,color .2s ease;
+}
+
+.adminTabButton:hover:not(:disabled){
+  transform:translateY(-1px);
+}
+
+.adminTabButton.is-active{
+  background:linear-gradient(135deg,rgba(244,223,155,.94),rgba(214,177,93,.9));
+  border-color:rgba(244,223,155,.3);
+  color:#171000;
+}
+
+.adminTabPanel{
+  display:block;
+}
+
+.ordersPanel,
+.placeholderPanel{
+  padding:24px;
+}
+
+.ordersList{
+  display:grid;
+  gap:16px;
+  margin-top:18px;
+}
+
+.orderCard{
+  display:grid;
+  gap:18px;
+  padding:22px;
+  border-radius:26px;
+  border:1px solid rgba(255,255,255,.06);
+  background:rgba(255,255,255,.03);
+}
+
+.orderCardHeader{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:18px;
+}
+
+.orderCardCopy{
+  display:grid;
+  gap:8px;
+}
+
+.orderNumber{
+  color:var(--cream);
+  font-size:1.08rem;
+}
+
+.orderCustomerLine{
+  margin:0;
+}
+
+.orderBadgeRow{
+  display:flex;
+  flex-wrap:wrap;
+  justify-content:flex-end;
+  gap:10px;
+}
+
+.pill.is-draft{
+  background:rgba(255,255,255,.08);
+  color:rgba(255,255,255,.74);
+}
+
+.pill.is-cancelled{
+  background:rgba(240,160,160,.18);
+  color:#ffd8d8;
+}
+
+.pill.is-expired{
+  background:rgba(214,177,93,.12);
+  color:#edd8af;
+}
+
+.pill.is-fulfilled{
+  background:rgba(143,203,155,.18);
+  color:#d8efde;
+}
+
+.pill.is-payment-open{
+  background:rgba(244,223,155,.14);
+  color:#f4df9b;
+}
+
+.pill.is-payment-paid{
+  background:rgba(143,203,155,.16);
+  color:#d8efde;
+}
+
+.pill.is-payment-failed,
+.pill.is-payment-cancelled{
+  background:rgba(240,160,160,.18);
+  color:#ffd8d8;
+}
+
+.pill.is-payment-expired{
+  background:rgba(214,177,93,.12);
+  color:#edd8af;
+}
+
+.pill.is-payment-pending{
+  background:rgba(127,160,212,.16);
+  color:#d8e3ff;
+}
+
+.orderMetaGrid{
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:14px;
+}
+
+.orderMetaBlock{
+  display:grid;
+  gap:8px;
+  padding:16px;
+  border-radius:18px;
+  border:1px solid rgba(214,177,93,.14);
+  background:rgba(5,5,5,.24);
+}
+
+.orderMetaLabel{
+  color:var(--gold2);
+  font-size:.76rem;
+  font-weight:700;
+  letter-spacing:.14em;
+  text-transform:uppercase;
+}
+
+.orderMetaBlock strong{
+  color:var(--cream);
+  line-height:1.6;
+}
+
+.orderProductsList{
+  display:grid;
+  gap:10px;
+}
+
+.orderProductRow{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:16px;
+  padding:14px 16px;
+  border-radius:16px;
+  border:1px solid rgba(214,177,93,.1);
+  background:rgba(255,255,255,.025);
+}
+
+.orderProductRow strong{
+  color:var(--cream);
+  font-size:.96rem;
+}
+
+.orderActions{
+  display:flex;
+  flex-wrap:wrap;
+  gap:12px;
+}
+
+.orderActionButton{
+  min-height:44px;
+}
+
+.placeholderBody{
+  display:grid;
+  gap:10px;
+  padding:22px;
+  margin-top:18px;
+  border-radius:24px;
+  border:1px dashed rgba(214,177,93,.26);
+  background:rgba(255,255,255,.025);
+}
+
+.placeholderBody strong{
+  color:var(--cream);
+  font-size:1.05rem;
+}
+
+.placeholderBody p{
+  margin:0;
+}
+
 @media(max-width:1160px){
   .adminLayout{
     grid-template-columns:1fr;
+  }
+
+  .orderMetaGrid{
+    grid-template-columns:repeat(2,minmax(0,1fr));
   }
 }
 
@@ -741,13 +952,15 @@ body.crop-open{
 
   .adminHeader,
   .panelHeader,
-  .imageSectionHead{
+  .imageSectionHead,
+  .orderCardHeader{
     display:block;
   }
 
   .adminHeaderActions,
   .formActions,
-  .imageTools{
+  .imageTools,
+  .orderBadgeRow{
     margin-top:14px;
   }
 
@@ -756,8 +969,15 @@ body.crop-open{
   }
 
   .formGrid,
-  .imagePreviewGrid{
+  .imagePreviewGrid,
+  .orderMetaGrid{
     grid-template-columns:1fr;
+  }
+
+  .adminTabNav,
+  .orderActions,
+  .orderProductRow{
+    display:grid;
   }
 
   .cropToolbar{

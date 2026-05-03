@@ -28,6 +28,34 @@ const LEGACY_PRODUCT_SELECT_FIELDS = `
 `;
 
 const PUBLIC_STOREFRONT_STATUSES = ["available", "reserved", "sold"];
+const ORDER_SELECT_FIELDS = `
+  id,
+  order_number,
+  customer_name,
+  customer_email,
+  customer_phone,
+  pickup_note,
+  status,
+  payment_status,
+  total_amount,
+  mollie_payment_id,
+  mollie_checkout_url,
+  payment_method,
+  reservation_expires_at,
+  created_at,
+  paid_at,
+  deleted_at,
+  webhook_last_processed_at,
+  order_items (
+    id,
+    order_id,
+    product_id,
+    product_name,
+    product_price,
+    image_url,
+    created_at
+  )
+`;
 
 let cachedClient = null;
 
@@ -107,6 +135,16 @@ function mapRegistrationErrorMessage(error, fallbackMessage) {
   return error?.message ? error.message : fallbackMessage;
 }
 
+function mapFunctionErrorMessage(error, fallbackMessage) {
+  const message = String(error?.message || "").toLowerCase();
+
+  if (message.includes("failed to fetch") || message.includes("network")) {
+    return "De beveiligde backend kon niet bereikt worden. Controleer je verbinding en probeer opnieuw.";
+  }
+
+  return error?.message ? error.message : fallbackMessage;
+}
+
 export function getSupabaseErrorMessage() {
   if (!window.supabase || typeof window.supabase.createClient !== "function") {
     return "Supabase JS kon niet geladen worden.";
@@ -145,6 +183,33 @@ export function getSupabaseClient() {
   }
 
   return cachedClient;
+}
+
+function getEdgeFunctionBaseUrl() {
+  const { url } = getConfig();
+  return `${String(url || "").replace(/\/+$/, "")}/functions/v1`;
+}
+
+async function invokeEdgeFunction(functionName, body, fallbackMessage) {
+  const session = await getCurrentSession().catch(() => null);
+  const { anonKey } = getConfig();
+  const response = await fetch(`${getEdgeFunctionBaseUrl()}/${functionName}`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      apikey: anonKey,
+      Authorization: `Bearer ${session?.access_token || anonKey}`,
+    },
+    body: JSON.stringify(body),
+  });
+
+  const payload = await response.json().catch(() => ({}));
+
+  if (!response.ok) {
+    throw new Error(payload?.error || fallbackMessage);
+  }
+
+  return payload;
 }
 
 export function formatCurrency(value) {
@@ -199,6 +264,66 @@ function normalizeProduct(row, images) {
     deleted_at: row.deleted_at || null,
     images,
   };
+}
+
+function normalizeOrderStatus(status) {
+  if (["draft", "reserved", "paid", "cancelled", "expired", "fulfilled"].includes(status)) {
+    return status;
+  }
+
+  return "draft";
+}
+
+function normalizePaymentStatus(status) {
+  if (["open", "paid", "failed", "expired", "cancelled", "pending"].includes(status)) {
+    return status;
+  }
+
+  return "open";
+}
+
+function normalizeAdminOrder(row) {
+  return {
+    id: row.id,
+    order_number: row.order_number || "",
+    customer_name: row.customer_name || "",
+    customer_email: row.customer_email || "",
+    customer_phone: row.customer_phone || "",
+    pickup_note: row.pickup_note || "",
+    status: normalizeOrderStatus(row.status),
+    payment_status: normalizePaymentStatus(row.payment_status),
+    total_amount: Number(row.total_amount || 0),
+    mollie_payment_id: row.mollie_payment_id || null,
+    mollie_checkout_url: row.mollie_checkout_url || null,
+    payment_method: row.payment_method || null,
+    reservation_expires_at: row.reservation_expires_at || null,
+    created_at: row.created_at || "",
+    paid_at: row.paid_at || null,
+    deleted_at: row.deleted_at || null,
+    webhook_last_processed_at: row.webhook_last_processed_at || null,
+    order_items: Array.isArray(row.order_items)
+      ? row.order_items.map((item) => ({
+        id: item.id,
+        order_id: item.order_id,
+        product_id: item.product_id,
+        product_name: item.product_name || "",
+        product_price: Number(item.product_price || 0),
+        image_url: item.image_url || null,
+        created_at: item.created_at || "",
+      }))
+      : [],
+  };
+}
+
+export async function releaseExpiredReservations() {
+  const supabase = getSupabaseClient();
+  const response = await supabase.rpc("release_expired_reservations");
+
+  if (response.error) {
+    throw new Error(response.error.message || "Verlopen reservaties konden niet vrijgegeven worden.");
+  }
+
+  return response.data || null;
 }
 
 async function runProductQuery(selectFields, options = {}) {
@@ -266,6 +391,12 @@ async function fetchImageRows(productIds) {
 }
 
 async function fetchProductsForScope(options = {}) {
+  try {
+    await releaseExpiredReservations();
+  } catch (error) {
+    console.warn("Reservaties konden niet vooraf opgeschoond worden.", error);
+  }
+
   const productRows = await fetchProductRows(options);
   const imageRows = await fetchImageRows(productRows.map((row) => row.id));
   const imagesByProductId = new Map();
@@ -299,6 +430,24 @@ export async function fetchProductsWithImages() {
 
 export async function fetchAdminProductsWithImages() {
   return fetchProductsForScope({ adminScope: true });
+}
+
+export async function fetchAdminOrders() {
+  try {
+    await releaseExpiredReservations();
+  } catch (error) {
+    console.warn("Reservaties konden niet vooraf opgeschoond worden.", error);
+  }
+
+  const supabase = getSupabaseClient();
+  const response = await supabase
+    .from("orders")
+    .select(ORDER_SELECT_FIELDS)
+    .is("deleted_at", null)
+    .order("created_at", { ascending: false });
+
+  ensureSuccess(response.error, "Bestellingen konden niet geladen worden.");
+  return (response.data || []).map(normalizeAdminOrder);
 }
 
 function createProductPayload(values) {
@@ -496,6 +645,56 @@ export async function signOutCurrentUser() {
   const response = await supabase.auth.signOut();
 
   ensureSuccess(response.error, "Uitloggen mislukte.");
+}
+
+export async function createCheckoutSession(payload) {
+  try {
+    return await invokeEdgeFunction("create-checkout", payload, "Checkout kon niet gestart worden.");
+  } catch (error) {
+    throw new Error(mapFunctionErrorMessage(error, "Checkout kon niet gestart worden."));
+  }
+}
+
+export async function fetchCheckoutStatus(orderId) {
+  try {
+    return await invokeEdgeFunction(
+      "create-checkout",
+      { action: "status", orderId },
+      "Bestelstatus kon niet gecontroleerd worden.",
+    );
+  } catch (error) {
+    throw new Error(mapFunctionErrorMessage(error, "Bestelstatus kon niet gecontroleerd worden."));
+  }
+}
+
+export async function markOrderFulfilled(orderId) {
+  const supabase = getSupabaseClient();
+  const response = await supabase.rpc("mark_order_fulfilled", {
+    p_order_id: orderId,
+  });
+
+  ensureSuccess(response.error, "De bestelling kon niet als afgehaald gemarkeerd worden.");
+  return Array.isArray(response.data) ? response.data[0] || null : response.data || null;
+}
+
+export async function cancelOrder(orderId) {
+  const supabase = getSupabaseClient();
+  const response = await supabase.rpc("cancel_order", {
+    p_order_id: orderId,
+  });
+
+  ensureSuccess(response.error, "De bestelling kon niet geannuleerd worden.");
+  return Array.isArray(response.data) ? response.data[0] || null : response.data || null;
+}
+
+export async function releaseOrderReservation(orderId) {
+  const supabase = getSupabaseClient();
+  const response = await supabase.rpc("release_order_reservation", {
+    p_order_id: orderId,
+  });
+
+  ensureSuccess(response.error, "De reservatie kon niet vrijgegeven worden.");
+  return Array.isArray(response.data) ? response.data[0] || null : response.data || null;
 }
 
 export async function signInAdmin(email, password) {
