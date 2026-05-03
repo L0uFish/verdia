@@ -4,547 +4,405 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Verdia | Nordic Floral Atelier</title>
-  <meta name="description" content="Verdia maakt minimalistische, onderhoudsvrije zijdebloemen voor rustige, natuurlijke interieurs en bijzondere gelegenheden." />
-  <link rel="icon" type="image/svg+xml" href='data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"%3E%3Crect width="64" height="64" rx="18" fill="%23f2e8dc"/%3E%3Cpath d="M18 16 30 48 46 16" fill="none" stroke="%23656a5c" stroke-linecap="round" stroke-linejoin="round" stroke-width="6"/%3E%3C/svg%3E' />
-  <link rel="stylesheet" href="styles.css?v=9.0" />
+  <meta name="description" content="Verdia maakt minimalistische zijdebloemen voor een rustige en natuurlijke woonstijl." />
+  <link rel="icon" type="image/svg+xml" href='data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"%3E%3Crect width="64" height="64" rx="18" fill="%23f2e7da"/%3E%3Cpath d="M18 16 30 48 46 16" fill="none" stroke="%23636a5b" stroke-linecap="round" stroke-linejoin="round" stroke-width="6"/%3E%3C/svg%3E' />
+  <link rel="stylesheet" href="styles.css?v=10.0" />
 </head>
 <body>
-  <div id="demoBanner" class="demoBanner">
-      <div>
-        <strong>Demo website</strong>
-        <span>Deze website is momenteel niet actief en dient enkel ter demonstratie.</span>
-      </div>
-    <button type="button" id="closeDemoBanner">×</button>
-  </div>
-  <header class="nav">
-    <div class="brand">
-      <span class="mark">V</span>
-      <span>Verdia</span>
+  <div id="demoBanner" class="demo-banner">
+    <div>
+      <strong>Demo site</strong>
+      <span>Deze website is alleen bedoeld als voorbeeld.</span>
     </div>
-    <div class="navActions">
-      <nav aria-label="Hoofdnavigatie">
-        <a href="#collectie">Collectie</a>
-        <a href="#maatwerk">Maatwerk</a>
-        <a href="#contact">Contact</a>
-      </nav>
-      <button
-        type="button"
-        id="accountButton"
-        class="btn ghost navAccountButton"
-        aria-haspopup="dialog"
-        aria-controls="accountModal"
-        aria-expanded="false"
-      >
-        Inloggen
-      </button>
-      <button
-        type="button"
-        id="cartButton"
-        class="btn primary navCartButton"
-        aria-haspopup="dialog"
-        aria-controls="cartDrawer"
-        aria-expanded="false"
-      >
-        <span class="cartButtonIcon" aria-hidden="true">
-          <svg viewBox="0 0 24 24" focusable="false">
-            <path d="M7 7h12l-1.4 7.2a2 2 0 0 1-2 1.6H10a2 2 0 0 1-2-1.6L6.6 4.8A1.8 1.8 0 0 0 4.8 3.4H3" />
-            <circle cx="10" cy="19" r="1.5" />
-            <circle cx="17" cy="19" r="1.5" />
-          </svg>
-        </span>
+    <button type="button" id="closeDemoBanner" class="icon-button" aria-label="Sluit melding">×</button>
+  </div>
+
+  <header class="site-header">
+    <div class="brand-wrap">
+      <span class="brand-mark">V</span>
+      <span class="brand-name">Verdia</span>
+    </div>
+
+    <nav class="main-nav" aria-label="Hoofdnavigatie">
+      <a href="#collectie">Collectie</a>
+      <a href="#maatwerk">Maatwerk</a>
+      <a href="#contact">Contact</a>
+    </nav>
+
+    <div class="header-actions">
+      <button type="button" id="accountButton" class="btn btn-ghost" aria-haspopup="dialog" aria-controls="accountModal" aria-expanded="false">Inloggen</button>
+      <button type="button" id="cartButton" class="btn btn-primary" aria-haspopup="dialog" aria-controls="cartDrawer" aria-expanded="false">
+        <span class="cart-icon" aria-hidden="true">🛒</span>
         <span>Mandje</span>
-        <span id="cartCountBadge" class="cartCountBadge" hidden>0</span>
+        <span id="cartCountBadge" class="cart-badge" hidden>0</span>
       </button>
     </div>
   </header>
 
   <main>
-    <section class="hero">
-      <div class="heroText">
-        <p class="eyebrow">Verdia Atelier</p>
-        <h1>Zijden bloemstukken met een blijvende, verfijnde uitstraling.</h1>
-        <p class="heroSummary">
-          Subtiele woonbloemen voor een rustige, minimalistische leefomgeving.
-        </p>
-        <p>
-          Verdia brengt licht, natuur en zachte materialen samen in een tijdloos bloemenatelier.
-        </p>
-        <div class="heroDetails" aria-label="Kenmerken van Verdia">
-          <article class="heroDetail">
-            <strong>Realistische zijde</strong>
-            <span>Natuurlijke vormen, rijke schakeringen en verfijnde afwerking.</span>
-          </article>
-          <article class="heroDetail">
-            <strong>Onderhoudsvrij</strong>
-            <span>Geen water, geen verwelking, wel een blijvende uitstraling.</span>
-          </article>
-          <article class="heroDetail">
-            <strong>Maatwerk &amp; styling</strong>
-            <span>Voor woningen, ontvangstruimtes, ceremonies en events.</span>
-          </article>
-        </div>
-        <div class="heroButtons">
-          <a class="btn primary" href="#collectie">Bekijk de collectie</a>
-          <a class="btn ghost" href="#contact">Bespreek maatwerk</a>
+    <section class="hero-panel">
+      <div class="hero-copy">
+        <span class="eyebrow">Nordic floral atelier</span>
+        <h1>Zachte woonbloemen voor een lichte, rustige interieurstijl.</h1>
+        <p class="hero-text">Minimalistische arrangementen met onderhoudsvrije zijde, natuurlijke tinten en een serene uitstraling.</p>
+        <div class="hero-actions">
+          <a class="btn btn-primary" href="#collectie">Bekijk collectie</a>
+          <a class="btn btn-ghost" href="#contact">Vraag maatwerk</a>
         </div>
       </div>
-
-      <div class="heroImage">
-        <img src="images/Verdia 10_1.jpg" alt="Luxe zijden bloemstuk van Verdia">
-        <div class="heroCard">
-          <span class="heroCardLabel">House Edit</span>
-          <strong>Rustige arrangementen voor modern wonen en intieme momenten.</strong>
-          <p>Geselecteerde composities met een lichte, natuurlijke uitstraling.</p>
+      <div class="hero-visual">
+        <div class="hero-media">
+          <img src="images/Verdia 10_1.jpg" alt="Luxe zijden bloemstuk van Verdia" loading="eager" />
+        </div>
+        <div class="hero-panel-note">
+          <span class="note-label">House edit</span>
+          <strong>Subtiele composities voor een warme, rustige leefruimte.</strong>
         </div>
       </div>
     </section>
 
-    <section class="intro">
-      <div>
-        <span class="sectionTag">Verdia</span>
-        <h2>Natuurlijk wonen, opnieuw geïnterpreteerd.</h2>
-      </div>
-      <p class="goldLine">Minimalistische bloemcomposities en zachte woonaccenten met tijdloze allure.</p>
-    </section>
-
-    <section class="features">
-      <article>
-        <span>01</span>
-        <h3>Tijdloos design</h3>
-        <p>Composities die rust brengen en seizoen na seizoen hun elegantie behouden.</p>
-      </article>
-      <article>
-        <span>02</span>
-        <h3>Realistische afwerking</h3>
-        <p>Hoogwaardige zijdebloemen met natuurlijke beweging, nuance en verfijnde details.</p>
-      </article>
-      <article>
-        <span>03</span>
-        <h3>Veelzijdig maatwerk</h3>
-        <p>Voor woningen, huwelijken, events, uitvaarten en zakelijke interieurs.</p>
-      </article>
-    </section>
-
-    <section id="collectie" class="collection">
-      <div class="sectionHead">
+    <section id="collectie" class="section collection-section">
+      <div class="section-heading">
         <div>
           <span class="sectionTag">Collectie</span>
-          <h2>Signature bloemstukken</h2>
+          <h2>Rustige bloemcomposities</h2>
         </div>
-        <p>Een selectie onderhoudsvrije arrangementen voor interieurs, ceremonies en ontvangstruimtes.</p>
+        <p>Een frisse selectie van handgemaakte zijdebloemen voor een zachte living.</p>
       </div>
-
-      <p id="productStatus" class="catalogStatus">Collectie wordt geladen...</p>
-      <div id="productGrid" class="grid"></div>
+      <p id="productStatus" class="status-text">Collectie wordt geladen...</p>
+      <div id="productGrid" class="grid-list"></div>
     </section>
 
-    <section id="recent-verkocht" class="collection collectionRecent">
-      <div class="sectionHead">
+    <section id="recent-verkocht" class="section recent-section">
+      <div class="section-heading">
         <div>
           <span class="sectionTag">Recent verkocht</span>
-          <h2>Recent verkocht</h2>
+          <h2>Veel gekozen</h2>
         </div>
-        <p>Een kleine blik op stukken die recent hun plek vonden. Een subtiele indruk van de vraag naar unieke Verdia-creaties.</p>
+        <p>Een selectie van favoriete stukken met een tijdloze uitstraling.</p>
       </div>
-
-      <p id="recentSoldStatus" class="catalogStatus" hidden>Recente verkopen worden geladen...</p>
-      <div id="recentSoldGrid" class="grid soldGrid"></div>
+      <p id="recentSoldStatus" class="status-text" hidden>Recente verkopen worden geladen...</p>
+      <div id="recentSoldGrid" class="grid-list"></div>
     </section>
 
-    <section id="maatwerk" class="atelier">
-      <div class="atelierImage">
-        <img src="images/Verdia 14_1.jpg" alt="Verdia maatwerk bloemstuk">
-      </div>
-      <div class="atelierText">
-        <span class="sectionTag">Atelier service</span>
-        <h2>Een compositie afgestemd op jouw ruimte of gelegenheid.</h2>
-        <p>
-          Samen bekijken we stijl, kleuren, schaal en sfeer. Van een blijvend
-          accent in huis tot een verfijnde opstelling voor ceremonie, event of
-          zakelijke ontvangst.
-        </p>
-        <ul>
-          <li>Voor interieurs, ontvangstruimtes en tweede verblijven</li>
-          <li>Voor huwelijken, events, ceremonies en zakelijke styling</li>
-          <li>Voor uitvaarten, herinneringswerk en bijzondere maatwerkvragen</li>
+    <section id="maatwerk" class="section atelier-section">
+      <div class="atelier-copy">
+        <span class="sectionTag">Atelier</span>
+        <h2>Persoonlijk maatwerk voor je interieur.</h2>
+        <p>Verdia ontwerpt zachte bloemcomposities met natuurlijke kleuren en een serene sfeer.</p>
+        <ul class="atelier-list">
+          <li>Wonen</li>
+          <li>Ceremonies</li>
+          <li>Zakelijke styling</li>
         </ul>
       </div>
-    </section>
-
-    <section class="quote">
-      <p>“Bloemstukken met de zachtheid van verse bloemen en de rust van blijvend design.”</p>
-    </section>
-
-    <section id="contact" class="contact">
-      <div class="contactIntro">
-        <span class="sectionTag">Contact</span>
-        <h2>Stel je interieur zacht samen.</h2>
-        <p>
-          Verdia maakt rustige silk floral styling voor interieurs, ceremonies en persoonlijk maatwerk.
-        </p>
-        <div class="contactHighlights">
-          <span>Schilde · Sint-Job-in-'t-Goor · Zoersel</span>
-          <span>Interieur · huwelijk · event · uitvaart · zakelijk</span>
-        </div>
-        <p class="small">BE 0461.177.194</p>
+      <div class="atelier-visual">
+        <img src="images/Verdia 14_1.jpg" alt="Verdia maatwerk bloemstuk" loading="lazy" />
       </div>
-      <div class="contactPanel">
-        <div class="contactCard">
-          <span class="sectionTag">Atelier</span>
-          <h3>Persoonlijk advies</h3>
-          <p>Telefonisch of per mail bekijken we stijl, kleuren, timing en de juiste schaal voor jouw project.</p>
-          <div class="contactLinks">
-            <a href="tel:+32499345074">0499 34 50 74</a>
-            <a href="mailto:penny.raemen@gmail.com">penny.raemen@gmail.com</a>
-          </div>
-          <ul class="contactList">
-            <li>Onderhoudsvrije silk floral styling</li>
-            <li>Voor interieurs, ceremonies en ontvangstruimtes</li>
-            <li>Bespoke uitwerking voor maatwerkvragen</li>
-          </ul>
-          <span class="contactResponse">Reactie en afstemming verlopen persoonlijk, in alle rust en op maat.</span>
+    </section>
+
+    <section class="section quote-section">
+      <p>“Bloemen die rust toevoegen, ontworpen voor een stil en elegant interieur.”</p>
+    </section>
+
+    <section id="contact" class="section contact-section">
+      <div class="contact-copy">
+        <span class="sectionTag">Contact</span>
+        <h2>Vraag een persoonlijk voorstel aan.</h2>
+        <p>Vertel ons over sfeer, ruimte of gelegenheid. We stemmen je bloemcompositie daarop af.</p>
+        <div class="contact-meta">
+          <a href="tel:+32499345074">0499 34 50 74</a>
+          <a href="mailto:penny.raemen@gmail.com">penny.raemen@gmail.com</a>
         </div>
-        <div class="contactForm">
+      </div>
+      <div class="contact-panel">
+        <div class="contact-card">
           <span class="sectionTag">Aanvraag</span>
-          <h3>Vraag een persoonlijk voorstel aan</h3>
-          <p>Omschrijf kort de ruimte, gelegenheid of sfeer. Het formulier is visueel productieklaar, maar verstuurt nog geen echte aanvraag.</p>
-          <form id="contactForm" class="formGrid" novalidate>
-            <label class="field">
-              <span>Naam</span>
-              <input type="text" name="name" autocomplete="name" placeholder="Jouw naam" />
-            </label>
-            <label class="field">
-              <span>E-mail</span>
-              <input type="email" name="email" autocomplete="email" placeholder="jouw@email.com" />
-            </label>
-            <label class="field">
-              <span>Telefoon</span>
-              <input type="tel" name="phone" autocomplete="tel" placeholder="Optioneel telefoonnummer" />
-            </label>
-            <label class="field">
-              <span>Type aanvraag</span>
-              <select name="requestType">
-                <option value="">Kies een toepassing</option>
-                <option>Persoonlijk</option>
-                <option>Interieur</option>
-                <option>Huwelijk of ceremonie</option>
-                <option>Event of styling</option>
-                <option>Uitvaart of herinneringswerk</option>
-                <option>Zakelijke ruimte</option>
-                <option>Maatwerk</option>
-              </select>
-            </label>
-            <label class="field fieldWide">
-              <span>Bericht</span>
-              <textarea name="message" rows="6" placeholder="Vertel over de gewenste sfeer, kleuren, locatie, timing of het type opstelling."></textarea>
-            </label>
-            <div class="contactFormFooter fieldWide">
-              <p id="contactFormStatus" class="formNote" role="status">Demoformulier. Nog niet gekoppeld aan e-mail of Supabase.</p>
-              <button type="submit" class="btn primary">Verstuur aanvraag</button>
-            </div>
-          </form>
+          <h3>Rustig, persoonlijk advies</h3>
+          <p>Het formulier is visueel klaar, maar verstuurt nog geen echte aanvraag.</p>
         </div>
+        <form id="contactForm" class="form-grid" novalidate>
+          <label class="field">
+            <span>Naam</span>
+            <input type="text" name="name" autocomplete="name" placeholder="Jouw naam" />
+          </label>
+          <label class="field">
+            <span>E-mail</span>
+            <input type="email" name="email" autocomplete="email" placeholder="jouw@email.com" />
+          </label>
+          <label class="field">
+            <span>Telefoon</span>
+            <input type="tel" name="phone" autocomplete="tel" placeholder="Optioneel telefoonnummer" />
+          </label>
+          <label class="field">
+            <span>Type aanvraag</span>
+            <select name="requestType">
+              <option value="">Kies een toepassing</option>
+              <option>Persoonlijk</option>
+              <option>Interieur</option>
+              <option>Huwelijk of ceremonie</option>
+              <option>Event of styling</option>
+              <option>Uitvaart of herinneringswerk</option>
+              <option>Zakelijke ruimte</option>
+              <option>Maatwerk</option>
+            </select>
+          </label>
+          <label class="field field-wide">
+            <span>Bericht</span>
+            <textarea name="message" rows="6" placeholder="Vertel over de gewenste sfeer, kleuren, locatie, timing of het type opstelling."></textarea>
+          </label>
+          <div class="form-footer field-wide">
+            <p id="contactFormStatus" class="status-note" role="status">Demoformulier. Nog niet gekoppeld aan e-mail of Supabase.</p>
+            <button type="submit" class="btn btn-primary">Verstuur aanvraag</button>
+          </div>
+        </form>
       </div>
     </section>
   </main>
 
-  <footer>
+  <footer class="site-footer">
     <span>© Verdia Nordic Atelier</span>
-    <span>Minimalistische, natuurlijke woonbloemen</span>
+    <span>Minimalistische woonbloemen</span>
   </footer>
 
-  <p id="storefrontLiveRegion" class="srOnly" aria-live="polite" aria-atomic="true"></p>
+  <p id="storefrontLiveRegion" class="sr-only" aria-live="polite" aria-atomic="true"></p>
 
-  <div id="productModal" class="productModal" hidden>
-    <div class="productModalDialog" role="dialog" aria-modal="true" aria-labelledby="productModalTitle">
-      <button type="button" id="productModalClose" class="productModalClose" aria-label="Sluit productdetails">×</button>
-
-      <div class="productModalMedia">
-        <div class="productModalImageBox">
-          <div id="productModalPlaceholder" class="cardPlaceholder productModalPlaceholder" hidden>
+  <div id="productModal" class="modal-overlay" hidden>
+    <div class="modal-dialog" role="dialog" aria-modal="true" aria-labelledby="productModalTitle">
+      <button type="button" id="productModalClose" class="icon-button modal-close" aria-label="Sluit productdetails">×</button>
+      <div class="modal-media">
+        <div class="modal-image-box">
+          <div id="productModalPlaceholder" class="card-placeholder" hidden>
             <span>Afbeelding volgt binnenkort</span>
           </div>
-          <img id="productModalImage" class="productModalImage" alt="">
-          <button type="button" id="productModalPrev" class="arrow prev productModalArrow" aria-label="Vorige afbeelding">‹</button>
-          <button type="button" id="productModalNext" class="arrow next productModalArrow" aria-label="Volgende afbeelding">›</button>
+          <img id="productModalImage" class="modal-image" alt="" />
+          <button type="button" id="productModalPrev" class="nav-arrow prev" aria-label="Vorige afbeelding">‹</button>
+          <button type="button" id="productModalNext" class="nav-arrow next" aria-label="Volgende afbeelding">›</button>
         </div>
-        <div class="productModalGalleryFooter">
-          <p id="productModalGalleryMeta" class="productModalGalleryMeta"></p>
-          <div id="productModalDots" class="dots productModalDots"></div>
+        <div class="modal-gallery-footer">
+          <p id="productModalGalleryMeta" class="gallery-meta"></p>
+          <div id="productModalDots" class="dots"></div>
         </div>
       </div>
-
-      <div class="productModalContent">
-        <div class="productModalMetaRow">
+      <div class="modal-content">
+        <div class="modal-meta-row">
           <span class="sectionTag">Collectie</span>
-          <span class="productModalPickupPill">Afhaling op afspraak</span>
+          <span class="pickup-pill">Afhaling op afspraak</span>
         </div>
         <h2 id="productModalTitle"></h2>
-        <div class="productModalAvailabilityRow">
+        <div class="availability-row">
           <span id="productModalAvailability" class="availabilityBadge"></span>
         </div>
-        <div id="productModalPrice" class="price productModalPrice"></div>
-        <p id="productModalAvailabilityNote" class="productModalAvailabilityNote"></p>
-        <p id="productModalDescription" class="productModalDescription"></p>
-        <div class="productModalPickupNote">
+        <div id="productModalPrice" class="price"></div>
+        <p id="productModalAvailabilityNote" class="availability-note"></p>
+        <p id="productModalDescription" class="product-description"></p>
+        <div class="modal-note">
           <strong>Afhaling op afspraak</strong>
           <p>Na betaling nemen we contact op om het afhaalmoment af te spreken.</p>
         </div>
-        <p id="productModalActionFeedback" class="productModalActionFeedback" hidden></p>
-        <div class="productModalActions">
-          <button type="button" id="productModalPrimaryAction" class="btn primary">Toevoegen</button>
-          <button type="button" id="productModalSecondaryAction" class="btn ghost">Meer weten</button>
+        <p id="productModalActionFeedback" class="action-feedback" hidden></p>
+        <div class="modal-actions">
+          <button type="button" id="productModalPrimaryAction" class="btn btn-primary">Toevoegen</button>
+          <button type="button" id="productModalSecondaryAction" class="btn btn-ghost">Meer weten</button>
         </div>
       </div>
     </div>
   </div>
 
-  <div id="cartDrawer" class="cartDrawer" hidden>
-    <div class="cartDrawerBackdrop" data-cart-close></div>
-    <aside class="cartDrawerPanel" role="dialog" aria-modal="true" aria-labelledby="cartDrawerTitle">
-      <div class="cartDrawerHeader">
+  <div id="cartDrawer" class="drawer" hidden>
+    <div class="drawer-backdrop" data-cart-close></div>
+    <aside class="drawer-panel" role="dialog" aria-modal="true" aria-labelledby="cartDrawerTitle">
+      <div class="drawer-header">
         <div>
           <span class="sectionTag">Winkelmand</span>
           <h2 id="cartDrawerTitle">Jouw selectie</h2>
         </div>
-        <button type="button" id="cartDrawerClose" class="cartDrawerClose" aria-label="Sluit winkelmand">×</button>
+        <button type="button" id="cartDrawerClose" class="icon-button" aria-label="Sluit winkelmand">×</button>
       </div>
-
-      <p id="cartStatus" class="cartStatus" role="status" hidden></p>
-
-      <div id="cartEmptyState" class="cartEmptyState">
+      <p id="cartStatus" class="status-text" role="status" hidden></p>
+      <div id="cartEmptyState" class="empty-state">
         <strong>Je mandje is nog leeg.</strong>
         <p>Voeg een beschikbaar stuk toe om een afhaalbestelling te simuleren.</p>
       </div>
-
-      <div id="cartContent" class="cartDrawerContent" hidden>
-        <div id="cartItems" class="cartItems"></div>
-
-        <div class="cartSummary">
-          <div class="cartSummaryRow">
+      <div id="cartContent" class="cart-content" hidden>
+        <div id="cartItems" class="cart-items"></div>
+        <div class="cart-summary">
+          <div class="summary-row">
             <span>Subtotaal</span>
             <strong id="cartSubtotal">€ 0</strong>
           </div>
-          <p class="cartSummaryNote">Alle stukken zijn uniek, zonder verzending. Afhaling gebeurt uitsluitend op afspraak.</p>
+          <p class="summary-note">Afhaling op afspraak, zonder verzendkosten.</p>
         </div>
-
-        <div class="cartDrawerActions">
-          <button type="button" id="cartCheckoutButton" class="btn primary">Afrekenen</button>
+        <div class="cart-actions">
+          <button type="button" id="cartCheckoutButton" class="btn btn-primary">Afrekenen</button>
         </div>
       </div>
     </aside>
   </div>
 
-  <div id="checkoutModal" class="checkoutModal" hidden>
-    <div class="checkoutModalBackdrop" data-checkout-close></div>
-    <div class="checkoutModalDialog" role="dialog" aria-modal="true" aria-labelledby="checkoutTitle">
-      <button type="button" id="checkoutCloseButton" class="checkoutCloseButton" aria-label="Sluit afrekenen">×</button>
-
-      <div class="checkoutModalHeader">
-        <span id="checkoutEyebrow" class="sectionTag">Bestelling</span>
+  <div id="checkoutModal" class="modal-overlay" hidden>
+    <div class="modal-dialog modal-large" role="dialog" aria-modal="true" aria-labelledby="checkoutTitle">
+      <div class="checkout-header">
+        <span id="checkoutEyebrow" class="eyebrow checkout-eyebrow">Afrekenen</span>
         <h2 id="checkoutTitle">Afrekenen</h2>
-        <p id="checkoutIntro" class="checkoutIntro">Vul je gegevens in voor je afhaalbestelling. De betaling verloopt daarna via Mollie test mode.</p>
+        <p id="checkoutIntro">Vul je gegevens in voor je afhaalbestelling. De betaling verloopt via Mollie test mode.</p>
+        <button type="button" id="checkoutCloseButton" class="icon-button modal-close" aria-label="Sluit afrekenen">×</button>
       </div>
-
-      <div class="checkoutLayout">
-        <section class="checkoutMain">
-          <p id="checkoutStatus" class="checkoutStatus" role="status" hidden></p>
-
-          <div id="checkoutFormStep" class="checkoutStep">
-            <form id="checkoutForm" class="formGrid checkoutForm" novalidate>
+      <div class="checkout-layout">
+        <section class="checkout-main">
+          <p id="checkoutStatus" class="status-text" role="status" hidden></p>
+          <div id="checkoutFormStep" class="checkout-step">
+            <form id="checkoutForm" class="form-grid" novalidate>
               <label class="field">
                 <span>Naam</span>
                 <input id="checkoutNameInput" type="text" autocomplete="name" required />
               </label>
-
               <label class="field">
                 <span>E-mail</span>
                 <input id="checkoutEmailInput" type="email" autocomplete="email" required />
               </label>
-
               <label class="field">
                 <span>Telefoonnummer</span>
                 <input id="checkoutPhoneInput" type="tel" autocomplete="tel" required />
               </label>
-
-              <label class="field fieldWide">
+              <label class="field field-wide">
                 <span>Opmerking of voorkeur voor afhaling</span>
                 <textarea id="checkoutNoteInput" rows="5" placeholder="Eventuele voorkeur voor dag of tijdstip van afhalen."></textarea>
               </label>
-
-              <div class="field fieldWide checkoutFormActions">
-                <button type="button" id="checkoutBackToCartButton" class="btn ghost">Terug naar mandje</button>
-                <button type="submit" id="checkoutContinueButton" class="btn primary">Verder naar betaling</button>
+              <div class="field field-wide checkout-form-actions">
+                <button type="button" id="checkoutBackToCartButton" class="btn btn-ghost">Terug naar mandje</button>
+                <button type="submit" id="checkoutContinueButton" class="btn btn-primary">Verder naar betaling</button>
               </div>
             </form>
           </div>
-
-          <div id="checkoutPaymentStep" class="checkoutStep" hidden>
-            <div class="paymentPanel">
-              <div class="paymentPanelHeader">
+          <div id="checkoutPaymentStep" class="checkout-step" hidden>
+            <div class="payment-panel">
+              <div class="payment-header">
                 <div>
                   <h3>Kies een betaalmethode</h3>
                   <p>Je wordt doorgestuurd naar de beveiligde Mollie test checkout.</p>
                 </div>
-                <button type="button" id="checkoutBackToFormButton" class="btn ghost">Gegevens aanpassen</button>
+                <button type="button" id="checkoutBackToFormButton" class="btn btn-ghost">Gegevens aanpassen</button>
               </div>
-
-              <div class="paymentCustomerSummary">
-                <div class="paymentCustomerSummaryHeader">
+              <div class="payment-summary">
+                <div class="payment-summary-title">
                   <span class="sectionTag">Overzicht</span>
                   <strong>Jouw gegevens en afhaalvoorkeur</strong>
                 </div>
-
-                <div class="paymentCustomerGrid">
-                  <div class="paymentSummaryField">
-                    <span class="paymentSummaryLabel">Naam</span>
+                <div class="payment-summary-grid">
+                  <div class="summary-field">
+                    <span>Naam</span>
                     <strong id="checkoutPaymentName">-</strong>
                   </div>
-
-                  <div class="paymentSummaryField">
-                    <span class="paymentSummaryLabel">E-mail</span>
+                  <div class="summary-field">
+                    <span>E-mail</span>
                     <strong id="checkoutPaymentEmail">-</strong>
                   </div>
-
-                  <div class="paymentSummaryField">
-                    <span class="paymentSummaryLabel">Telefoonnummer</span>
+                  <div class="summary-field">
+                    <span>Telefoonnummer</span>
                     <strong id="checkoutPaymentPhone">-</strong>
                   </div>
-
-                  <div class="paymentSummaryField paymentSummaryFieldWide">
-                    <span class="paymentSummaryLabel">Opmerking of voorkeur voor afhaling</span>
-                    <p id="checkoutPaymentNote" class="paymentSummaryNote">Geen voorkeur opgegeven.</p>
+                  <div class="summary-field summary-field-wide">
+                    <span>Opmerking of voorkeur voor afhaling</span>
+                    <p id="checkoutPaymentNote">Geen voorkeur opgegeven.</p>
                   </div>
                 </div>
               </div>
-
-              <div id="checkoutPaymentMethods" class="paymentMethods" role="list"></div>
-
-              <p id="checkoutPaymentMethodHint" class="paymentMethodHint">Kies een methode en ga daarna verder naar de beveiligde Mollie test checkout.</p>
-
-              <div id="checkoutPaymentPickupNote" class="paymentPickupNote" hidden>
+              <div id="checkoutPaymentMethods" class="payment-methods" role="list"></div>
+              <p id="checkoutPaymentMethodHint" class="status-note">Kies een methode en ga daarna verder naar de beveiligde Mollie test checkout.</p>
+              <div id="checkoutPaymentPickupNote" class="payment-pickup-note" hidden>
                 <strong>Afhaling op afspraak</strong>
                 <p>Na betaling nemen we contact op om het afhaalmoment af te spreken.</p>
-                <span id="checkoutPaymentSelectedMethod" class="paymentPickupMeta"></span>
+                <span id="checkoutPaymentSelectedMethod"></span>
               </div>
-
-              <div id="checkoutPaymentProcessing" class="paymentProcessing" hidden>
-                <div class="paymentSpinner" aria-hidden="true"></div>
+              <div id="checkoutPaymentProcessing" class="payment-processing" hidden>
+                <div class="spinner" aria-hidden="true"></div>
                 <div>
                   <strong>Betaalpagina wordt voorbereid...</strong>
                   <p>We maken je bestelling klaar en sturen je daarna door naar Mollie.</p>
                 </div>
               </div>
-
-              <div class="paymentActionBar">
-                <p class="paymentActionNote">Mollie draait hier in testmodus. Je bestelling en reservatie worden wel echt in Supabase bijgewerkt.</p>
-                <button type="button" id="checkoutProceedToMollieButton" class="btn primary">Verder naar Mollie</button>
+              <div class="payment-action-bar">
+                <p class="status-note">Mollie draait hier in testmodus. Je bestelling en reservatie worden wel echt in Supabase bijgewerkt.</p>
+                <button type="button" id="checkoutProceedToMollieButton" class="btn btn-primary">Verder naar Mollie</button>
               </div>
             </div>
           </div>
-
-          <div id="checkoutResultStep" class="checkoutStep" hidden>
-            <div class="checkoutResultCard">
-              <span id="checkoutResultBadge" class="checkoutResultBadge"></span>
+          <div id="checkoutResultStep" class="checkout-step" hidden>
+            <div class="checkout-result-card">
+              <span id="checkoutResultBadge" class="result-badge"></span>
               <h3 id="checkoutResultHeading"></h3>
-              <p id="checkoutResultMessage" class="checkoutResultMessage"></p>
-              <div class="checkoutResultMeta">
+              <p id="checkoutResultMessage" class="result-message"></p>
+              <div class="result-meta">
                 <div>
-                  <span class="checkoutResultLabel">Ordernummer</span>
+                  <span>Ordernummer</span>
                   <strong id="checkoutResultOrderNumber">-</strong>
                 </div>
                 <div>
-                  <span class="checkoutResultLabel">Contact</span>
+                  <span>Contact</span>
                   <strong id="checkoutResultCustomer">-</strong>
                 </div>
               </div>
-              <div class="checkoutResultActions">
-                <button type="button" id="checkoutResultPrimaryButton" class="btn primary">Terug naar collectie</button>
-                <button type="button" id="checkoutResultSecondaryButton" class="btn ghost" hidden>Opnieuw proberen</button>
+              <div class="result-actions">
+                <button type="button" id="checkoutResultPrimaryButton" class="btn btn-primary">Terug naar collectie</button>
+                <button type="button" id="checkoutResultSecondaryButton" class="btn btn-ghost" hidden>Opnieuw proberen</button>
               </div>
             </div>
           </div>
         </section>
-
-        <aside class="checkoutSummaryPanel">
-          <div class="checkoutSummaryHeader">
+        <aside class="checkout-summary-panel">
+          <div class="checkout-summary-header">
             <span class="sectionTag">Bestelling</span>
             <strong id="checkoutSummaryCount">0 stukken</strong>
           </div>
-          <div id="checkoutSummaryItems" class="checkoutSummaryItems"></div>
-          <div class="checkoutSummaryFooter">
-            <div class="checkoutSummaryRow">
+          <div id="checkoutSummaryItems" class="checkout-summary-items"></div>
+          <div class="checkout-summary-footer">
+            <div class="summary-row">
               <span>Subtotaal</span>
               <strong id="checkoutSummarySubtotal">€ 0</strong>
             </div>
-            <p class="checkoutSummaryNote">Afhalen op afspraak, zonder verzendkosten of thuislevering.</p>
+            <p class="summary-note">Afhalen op afspraak, zonder verzendkosten.</p>
           </div>
         </aside>
       </div>
     </div>
   </div>
 
-  <div id="accountModal" class="accountModal" hidden>
-    <div class="accountModalDialog" role="dialog" aria-modal="true" aria-labelledby="accountModalTitle">
-      <button
-        type="button"
-        id="accountModalClose"
-        class="accountModalClose"
-        aria-label="Sluit accountvenster"
-      >
-        ×
-      </button>
-
-      <div class="accountModalHeader">
+  <div id="accountModal" class="modal-overlay" hidden>
+    <div class="modal-dialog" role="dialog" aria-modal="true" aria-labelledby="accountModalTitle">
+      <button type="button" id="accountModalClose" class="icon-button modal-close" aria-label="Sluit accountvenster">×</button>
+      <div class="account-panel">
         <span class="sectionTag">Verdia account</span>
         <h2 id="accountModalTitle">Inloggen</h2>
-        <p id="accountModalIntro" class="accountModalIntro">
-          Log in of maak een account aan. Bestellingen verschijnen hier later.
-        </p>
-      </div>
-
-      <p id="accountModalStatus" class="accountModalStatus" role="status" hidden></p>
-
-      <div id="accountLoggedOutView">
-        <div class="accountModeSwitch" role="group" aria-label="Aanmeldmethode">
-          <button type="button" id="accountModeLoginButton" class="accountModeButton is-active" aria-pressed="true">
-            Inloggen
-          </button>
-          <button type="button" id="accountModeRegisterButton" class="accountModeButton" aria-pressed="false">
-            Registreren
-          </button>
-        </div>
-
-        <form id="accountAuthForm" class="formGrid accountAuthForm" novalidate>
-          <label class="field">
-            <span>E-mail</span>
-            <input id="accountEmailInput" type="email" autocomplete="email" required />
-          </label>
-
-          <label class="field">
-            <span>Wachtwoord</span>
-            <input id="accountPasswordInput" type="password" autocomplete="current-password" required />
-          </label>
-
-          <div class="field fieldWide accountModalFooter">
-            <p id="accountModeHint" class="formNote">
-              Gebruik je e-mailadres en wachtwoord. Afrekenen blijft later ook zonder account mogelijk.
-            </p>
-            <button type="submit" id="accountSubmitButton" class="btn primary">Inloggen</button>
+        <p id="accountModalIntro" class="modal-intro">Log in of maak een account aan. Bestellingen verschijnen hier later.</p>
+        <p id="accountModalStatus" class="status-text" role="status" hidden></p>
+        <div id="accountLoggedOutView" class="account-view">
+          <div class="account-mode-switch" role="group" aria-label="Aanmeldmethode">
+            <button type="button" id="accountModeLoginButton" class="toggle-button is-active" aria-pressed="true">Inloggen</button>
+            <button type="button" id="accountModeRegisterButton" class="toggle-button" aria-pressed="false">Registreren</button>
           </div>
-        </form>
-      </div>
-
-      <div id="accountLoggedInView" hidden>
-        <div class="accountSummary">
-          <span class="accountSummaryLabel">Aangemeld als</span>
-          <strong id="accountEmailValue"></strong>
+          <form id="accountAuthForm" class="form-grid" novalidate>
+            <label class="field">
+              <span>E-mail</span>
+              <input id="accountEmailInput" type="email" autocomplete="email" required />
+            </label>
+            <label class="field">
+              <span>Wachtwoord</span>
+              <input id="accountPasswordInput" type="password" autocomplete="current-password" required />
+            </label>
+            <div class="form-footer field-wide">
+              <p id="accountModeHint" class="status-note">Gebruik je e-mailadres en wachtwoord. Afrekenen blijft later ook zonder account mogelijk.</p>
+              <button type="submit" id="accountSubmitButton" class="btn btn-primary">Inloggen</button>
+            </div>
+          </form>
         </div>
-
-        <p class="accountSummaryText">Bestellingen verschijnen hier later.</p>
-
-        <div class="accountModalFooter accountModalFooterSingle">
-          <button type="button" id="accountLogoutButton" class="btn primary">Uitloggen</button>
+        <div id="accountLoggedInView" class="account-view" hidden>
+          <div class="account-summary">
+            <span>Aangemeld als</span>
+            <strong id="accountEmailValue"></strong>
+          </div>
+          <p class="status-note">Bestellingen verschijnen hier later.</p>
+          <button type="button" id="accountLogoutButton" class="btn btn-primary">Uitloggen</button>
         </div>
       </div>
     </div>
