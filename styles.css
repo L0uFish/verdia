@@ -382,6 +382,12 @@ footer{
   padding-bottom:28px;
 }
 
+.heroVisualColumn{
+  display:grid;
+  justify-items:end;
+  gap:22px;
+}
+
 .hero .eyebrow{
   display:inline-flex;
   width:max-content;
@@ -441,7 +447,6 @@ footer{
   position:relative;
   width:min(100%,580px);
   aspect-ratio:4 / 5;
-  justify-self:end;
   transform:translateY(24px);
   border-radius:38px;
   overflow:hidden;
@@ -516,6 +521,20 @@ footer{
   line-height:1.72;
 }
 
+.heroAside{
+  width:min(360px,88%);
+  justify-self:start;
+  margin-right:54px;
+  padding:18px 0 0;
+  border-top:1px solid rgba(207,181,147,.14);
+}
+
+.heroAside p{
+  margin:.9em 0 0;
+  color:rgba(244,237,227,.74);
+  line-height:1.82;
+}
+
 .intro{
   display:grid;
   grid-template-columns:minmax(0,.9fr) minmax(0,1.1fr);
@@ -526,6 +545,12 @@ footer{
   border-top:1px solid var(--line);
 }
 
+.introEditorial{
+  display:grid;
+  gap:16px;
+  justify-items:end;
+}
+
 .goldLine{
   margin:0;
   max-width:28rem;
@@ -534,6 +559,14 @@ footer{
   font-family:"Iowan Old Style","Palatino Linotype","Book Antiqua","Baskerville","Times New Roman",serif;
   font-size:clamp(1.5rem,2.4vw,2rem);
   line-height:1.5;
+}
+
+.introCaption{
+  max-width:24rem;
+  margin:0;
+  color:rgba(244,237,227,.58);
+  font-size:.9rem;
+  line-height:1.82;
 }
 
 .features{
@@ -624,11 +657,25 @@ footer{
   max-width:10ch;
 }
 
+.sectionHeadMeta{
+  display:grid;
+  gap:16px;
+  justify-items:start;
+}
+
 .sectionHead p{
   margin:0;
   max-width:24rem;
   font-size:1.02rem;
   line-height:1.92;
+}
+
+.sectionSubline{
+  color:rgba(244,237,227,.56);
+  font-size:.72rem;
+  font-weight:700;
+  letter-spacing:.22em;
+  text-transform:uppercase;
 }
 
 .catalogStatus{
@@ -703,7 +750,7 @@ footer{
   position:relative;
   display:flex;
   flex-direction:column;
-  overflow:hidden;
+  overflow:visible;
   min-height:100%;
   border:1px solid rgba(207,181,147,.1);
   border-radius:32px;
@@ -755,6 +802,7 @@ footer{
   aspect-ratio:4 / 5;
   overflow:hidden;
   background:#16110d;
+  border-radius:32px;
 }
 
 .cardImage::before{
@@ -911,9 +959,17 @@ footer{
   flex:1 1 auto;
   flex-direction:column;
   gap:18px;
-  padding:28px 26px 30px;
+  width:calc(100% - 40px);
+  margin:-58px auto 0;
+  padding:24px 24px 26px;
   position:relative;
   z-index:1;
+  border:1px solid rgba(207,181,147,.1);
+  border-radius:28px;
+  background:
+    linear-gradient(180deg,rgba(38,29,24,.92),rgba(22,17,14,.96));
+  backdrop-filter:blur(18px);
+  box-shadow:0 24px 50px rgba(0,0,0,.22);
 }
 
 .cardMetaRow{
@@ -1047,6 +1103,11 @@ footer{
 .card .price{
   text-align:left;
   font-size:.98rem;
+}
+
+.card.is-sold-surface .cardBody{
+  background:
+    linear-gradient(180deg,rgba(31,25,21,.9),rgba(19,16,13,.94));
 }
 
 .cardPlaceholder{
@@ -1194,6 +1255,18 @@ footer{
   margin-right:12px;
 }
 
+.atelierNote{
+  max-width:25rem;
+  margin-top:34px;
+  padding:20px 22px 0 0;
+  border-top:1px solid rgba(207,181,147,.14);
+}
+
+.atelierNote p{
+  margin:.9em 0 0;
+  color:rgba(244,237,227,.72);
+}
+
 .quote{
   position:relative;
   padding-top:54px;
@@ -1224,6 +1297,16 @@ footer{
   text-wrap:balance;
 }
 
+.quoteSource{
+  display:inline-block;
+  margin-top:20px;
+  color:rgba(244,237,227,.56);
+  font-size:.72rem;
+  font-weight:700;
+  letter-spacing:.22em;
+  text-transform:uppercase;
+}
+
 .contact{
   display:grid;
   grid-template-columns:minmax(300px,.8fr) minmax(0,1.2fr);
@@ -1243,6 +1326,15 @@ footer{
 .contactIntro h2{
   margin:.22em 0 .34em;
   max-width:9ch;
+}
+
+.contactLead{
+  max-width:22rem;
+  margin:0 0 1.1em;
+  color:rgba(244,237,227,.78);
+  font-family:"Iowan Old Style","Palatino Linotype","Book Antiqua","Baskerville","Times New Roman",serif;
+  font-size:1.18rem;
+  line-height:1.6;
 }
 
 .contactHighlights{
@@ -2620,6 +2712,12 @@ footer{
     bottom:24px;
   }
 
+  .heroAside{
+    width:min(440px,100%);
+    justify-self:start;
+    margin-right:0;
+  }
+
   .atelierImage{
     order:0;
     justify-self:start;
@@ -2658,6 +2756,10 @@ footer{
 
   .sectionHead{
     grid-template-columns:1fr;
+  }
+
+  .introEditorial{
+    justify-items:start;
   }
 
   .paymentMethods{
@@ -2716,6 +2818,11 @@ footer{
     width:100%;
     max-width:none;
     border-radius:28px;
+  }
+
+  .heroAside{
+    width:100%;
+    padding-right:14px;
   }
 
   .intro{
@@ -2832,6 +2939,12 @@ footer{
     grid-template-columns:1fr;
   }
 
+  .cardBody{
+    width:calc(100% - 24px);
+    margin:-44px auto 0;
+    padding:22px 20px 22px;
+  }
+
   .card .price{
     text-align:left;
   }
@@ -2906,6 +3019,11 @@ footer{
 
   .cardBody{
     padding:22px 20px 22px;
+  }
+
+  .heroAside,
+  .atelierNote{
+    padding-right:0;
   }
 
   .cardDescription{
